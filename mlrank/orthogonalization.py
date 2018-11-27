@@ -56,7 +56,7 @@ class SomeFabulousTransformation(BaseEstimator):
         pred = np.asarray(pred.sum(1))
 
         # TODO: уточнить
-        pred[np.argwhere(pred == 2)] = 1
+        pred[np.argwhere(pred == 2)] = 0
 
         pred_category, pred_counts = np.unique(pred, return_counts=True)
         real_category, real_counts = np.unique(real, return_counts=True)

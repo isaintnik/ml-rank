@@ -3,41 +3,98 @@ from copy import deepcopy as copy
 
 from sklearn.base import BaseEstimator
 from sklearn.preprocessing import OneHotEncoder
+from sklearn.utils.multiclass import type_of_target
 from scipy import sparse
 
-from .dichtomization import MaxentropyMedianDichtomizationTransformer
+from mlrank.dichtomization import MaxentropyMedianDichtomizationTransformer
 
-class SomeFabulousTransformation(BaseEstimator):
-    def __init__(self, base_estimator, dichtomized=False, n_splits=32, exhausitve=True, random_seed=42, verbose=1):
-        self.base_estimator = base_estimator
+
+def cross_entropy_discrete(p, q):
+    """
+    Simple pity cross entropy implementation
+    :param p: base distribution
+    :param q: target distribution
+    :return:
+    """
+    p = np.array(p)
+    q = np.array(q)
+    return -np.sum(p * np.log(q + 1))
+
+
+def synchronize_two_dicts(_a: dict, _b: dict):
+    """
+    helper method to synchronize keys in two dictionaries
+    :param _a: source dictionary
+    :param _b:  target dictionary
+    :return:
+    """
+    for i in np.setdiff1d(list(_a.keys()), list(_b.keys())):
+        if i not in _a.keys():
+            _a[i] = 0
+
+        if i not in _b.keys():
+            _b[i] = 0
+
+
+def calc_cross_entropy_from_binary_features(real, pred):
+    """
+    Calculate cross entropy between feature and it's prediction
+    :param ix_feature: feature index in dataset
+    :param pred: predicted value
+    :param dataset_size:
+    :return:
+    """
+    real = np.asarray(real.sum(1))
+    pred = np.asarray(pred.sum(1))
+
+    pred[np.argwhere(pred == 2)] = 1
+
+    pred_category, pred_counts = np.unique(pred, return_counts=True)
+    real_category, real_counts = np.unique(real, return_counts=True)
+
+    pred_proba = pred_counts / real.shape[0]
+    real_proba = real_counts / real.shape[0]
+
+    real_stats = dict(zip(real_category, real_proba))
+    pred_stats = dict(zip(pred_category, pred_proba))
+
+    synchronize_two_dicts(real_stats, pred_stats)
+
+    return cross_entropy_discrete(list(real_stats.values()), list(pred_stats.values()))
+
+
+class DichtomizedTransformer(object):
+    def __init__(self, dichtomized=False, n_splits=32):
+        """
+        Dichtomization of features and target
+        :param dichtomized: whether dataset is dichtomized or not
+        :param n_splits: number of splits to dichtomize continuous variables
+        """
         self.n_splits = n_splits
-        self.random_seed = random_seed
-        self.exhausitve = exhausitve
-        self.verbose = verbose
         self.dichtomized = dichtomized
+
         self._feature_space = None
         self._feature_dichtomizers = None
 
-    @staticmethod
-    def _cross_entropy(p, q):
-        p = np.array(p)
-        q = np.array(q)
-        q[q == 0] = 1e-8
-        return -np.sum(p * np.log(q))
+        self._target_categorical = None
+        self._target_onehot = None
+        self._target_encoder = None
 
-    @staticmethod
-    def _synchronize_two_dicts(_from: dict, _to: dict):
-        for i in np.setdiff1d(list(_from.keys()), list(_to.keys())):
-            _to[i] = 0
-
-    def _dichtomize(self, X):
+    def _dichtomize_features(self, X):
+        """
+        Dichtomize all the features in the dataset
+        assuming all of them are continuous
+        :param X: source dataset (numpy matrix where columns are features)
+        :return:
+        """
         self._feature_dichtomizers = list()
         self._feature_space = list()
 
         if not self.dichtomized:
             for i in range(X.shape[1]):
+                # TODO: check whether the feature is continious
                 feature = X[:, i].reshape(-1, 1)
-                dichtomizer = MaxentropyMedianDichtomizationTransformer(32).fit(feature)
+                dichtomizer = MaxentropyMedianDichtomizationTransformer(self.n_splits).fit(feature)
                 feature_dichtomized = dichtomizer.transform(feature)
                 onehot_encoder = OneHotEncoder(sparse=True).fit(feature_dichtomized)
 
@@ -51,28 +108,47 @@ class SomeFabulousTransformation(BaseEstimator):
                 self._feature_dichtomizers.append({'dichtomizer': None, 'encoder': onehot_encoder})
                 self._feature_space.append({'categorical': feature, 'binary': onehot_encoder.transform(feature)})
 
-    def _calc_cross_entropy(self, ix_feature, pred, dataset_size):
-        real = np.asarray(self._feature_space[ix_feature]['binary'].sum(1))
-        pred = np.asarray(pred.sum(1))
+    def _dichtomize_target(self, y):
+        """
+        Dichtomize dataset target if it is continuous
+        assuming all of them are continuous
+        :param X: source dataset (numpy matrix where columns are features)
+        :return:
+        """
+        target_type = type_of_target(y)
 
-        # TODO: уточнить
-        pred[np.argwhere(pred == 2)] = 0
+        self._target_encoder = OneHotEncoder(sparse=True)
 
-        pred_category, pred_counts = np.unique(pred, return_counts=True)
-        real_category, real_counts = np.unique(real, return_counts=True)
+        if target_type == 'continuous':
+            self._target_categorical = MaxentropyMedianDichtomizationTransformer(self.n_splits).fit_transform(y)
+        elif target_type in ['binary', 'multiclass']:
+            self._target_categorical = y
+        else:
+            raise Exception('Target type is incompatible with the model')
 
-        pred_proba = pred_counts / dataset_size
-        real_proba = real_counts / dataset_size
+        self._target_onehot = self._target_encoder.fit_transform(self._target_categorical)
 
-        real_stats = dict(zip(real_category, real_proba))
-        pred_stats = dict(zip(pred_category, pred_proba))
 
-        SomeFabulousTransformation._synchronize_two_dicts(real_stats, pred_stats)
+class MLRankTransformer(BaseEstimator, DichtomizedTransformer):
+    def __init__(self, base_estimator, dichtomized=False, n_splits=32, exhausitve=True, random_seed=42, verbose=1):
+        """
+        First implementation of MLRank
+        - this version searches ranks the input variables according to the information that they share in the dataset
+        :param base_estimator:
+        :param dichtomized: whether dataset is dichtomized or not
+        :param n_splits: number of splits to dichtomize continuous variables
+        :param exhausitve: exhaustively search for optimal subset through all the variables
+        :param random_seed: seed for random initialization of initial feature
+        :param verbose: whether output debug information or not
+        """
+        super().__init__(dichtomized, n_splits)
 
-        return SomeFabulousTransformation._cross_entropy(list(real_stats.values()), list(pred_stats.values()))
+        self.base_estimator = base_estimator
+        self.random_seed = random_seed
+        self.exhausitve = exhausitve
+        self.verbose = verbose
 
-    def _fit_transform(self, X, initial_feature_ix):
-        dataset_size = X.shape[0]
+    def _fit_transform(self, initial_feature_ix):
         free_features_ix = [i for i in range(len(self._feature_space)) if i != initial_feature_ix]
         active_features_subset = [self._feature_space[initial_feature_ix]['binary']]
         active_features_subset_ix = [initial_feature_ix]
@@ -94,14 +170,17 @@ class SomeFabulousTransformation(BaseEstimator):
                     model_input_features = active_features_subset[0]
 
                 estimator = copy(self.base_estimator)
-                estimator.fit(model_input_features, self._feature_space[ix_current_feature]['categorical'].squeeze())
+
+                estimator.fit(model_input_features,
+                              self._feature_space[ix_current_feature]['categorical'].squeeze())
 
                 pred = estimator.predict(model_input_features)
+                real = self._feature_space[ix_current_feature]['binary']
 
                 pred_onehot = self._feature_dichtomizers[ix_current_feature]['encoder'].transform(pred.reshape(-1, 1))
-                pred_diff = (pred_onehot != self._feature_space[ix_current_feature]['binary']).astype(np.int32)
 
-                entropy = self._calc_cross_entropy(ix_current_feature, pred_diff, dataset_size)
+                pred_diff = (pred_onehot != real).astype(np.int32)
+                entropy = calc_cross_entropy_from_binary_features(real, pred_diff)
 
                 if entropy > max_entropy:
                     max_entropy_feature_value = pred_diff
@@ -112,22 +191,112 @@ class SomeFabulousTransformation(BaseEstimator):
             active_features_subset.append(max_entropy_feature_value)
             active_features_subset_ix.append(max_entropy_feature_ix)
 
-        return np.hstack(active_features_subset), active_features_subset_ix
+        # remove first value to remove multicollinearity
+        # TODO: this method will kill the data if it is already properly dichtomized!!!
+        active_features_subset = [x_i[:, 1:] for x_i in active_features_subset]
 
-    def fit_transform(self, X):
+        return sparse.hstack(active_features_subset), active_features_subset_ix
+
+    def fit_transform(self, X, y=None):
         np.random.seed(self.random_seed)
 
-        self._dichtomize(X)
-
+        self._dichtomize_features(X)
         if not self.exhausitve:
             initial_feature_ix = np.random.randint(0, len(self._feature_space))
-            return self._fit_transform(X, initial_feature_ix)
+            return self._fit_transform(initial_feature_ix)
 
         features_subset = list()
         features_subset_ix = list()
         for initial_feature_ix in range(len(self._feature_space)):
             if self.verbose == 1:
                 print('processing starting feature {}'.format(initial_feature_ix))
-            features_subset, features_subset_ix = self._fit_transform(X, initial_feature_ix)
+            _features_subset, _features_subset_ix = self._fit_transform(initial_feature_ix)
 
-        return features_subset, np.hstack(features_subset_ix)
+            features_subset.append(_features_subset)
+            features_subset_ix.append(_features_subset_ix)
+
+        return features_subset, np.vstack(features_subset_ix)
+
+
+class MLRankTargetBasedTransformer(BaseEstimator, DichtomizedTransformer):
+    def __init__(self, base_estimator, dichtomized=False, n_splits=32, random_seed=42, verbose=1, use_xor=True, use_max_entropy=True):
+        """
+        :param base_estimator:
+        :param dichtomized: whether dataset is dichtomized or not
+        :param n_splits: number of splits to dichtomize continuous variables
+        :param random_seed: seed for random initialization of initial feature
+        :param verbose: whether output debug information or not
+        """
+        super().__init__(dichtomized, n_splits)
+
+        self.use_max_entropy = use_max_entropy
+        self.use_xor = use_xor
+        self.base_estimator = base_estimator
+        self.random_seed = random_seed
+        self.verbose = verbose
+
+    def _fit_transform(self):
+        free_features_ix = [i for i in range(len(self._feature_space))]
+        active_features_subset = []
+        active_features_subset_ix = []
+        target_entropy = calc_cross_entropy_from_binary_features(self._target_onehot, self._target_onehot)
+
+        while len(active_features_subset) != len(self._feature_space):
+            entropy_current = None
+            if self.use_max_entropy:
+                entropy_current = -np.inf
+            else:
+                entropy_current = np.inf
+
+            entropy_feature_ix = -1
+            entropy_feature_value = None
+
+            for ix_current_feature in free_features_ix:
+                if len(active_features_subset) > 1:
+                    model_input_features = sparse.hstack(active_features_subset)
+                else:
+                    model_input_features = self._feature_space[ix_current_feature]['binary']
+
+                estimator = copy(self.base_estimator)
+
+                estimator.fit(model_input_features, self._target_categorical)
+
+                pred = estimator.predict(model_input_features)
+                real = self._target_onehot
+
+                pred_onehot = self._target_encoder.transform(pred.reshape(-1, 1))
+
+                if self.use_xor:
+                    # calculate difference
+                    pred = (pred_onehot != real).astype(np.int32)
+                else:
+                    pred = (pred_onehot == real).astype(np.int32)
+
+                entropy = calc_cross_entropy_from_binary_features(real, pred)
+
+                if self.use_max_entropy and (entropy > entropy_current) or not self.use_max_entropy and (entropy < entropy_current):
+                    entropy_feature_value = pred
+                    entropy_feature_ix = ix_current_feature
+                    entropy_current = entropy
+
+            # if there is no changes in entropy, return given dataset
+            # since there is no point to continue
+            if target_entropy == entropy_current:
+                break
+
+            free_features_ix.remove(entropy_feature_ix)
+            active_features_subset.append(entropy_feature_value)
+            active_features_subset_ix.append(entropy_feature_ix)
+
+        # remove first value to remove multicollinearity
+        # TODO: this method will kill the data if it is already properly dichtomized!!!
+        active_features_subset = [x_i[:, 1:] for x_i in active_features_subset]
+        return sparse.hstack(active_features_subset), active_features_subset_ix
+
+    def fit_transform(self, X, y=None):
+        np.random.seed(self.random_seed)
+
+        self._dichtomize_features(X)
+        self._dichtomize_target(y)
+
+        return self._fit_transform()

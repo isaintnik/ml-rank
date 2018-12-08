@@ -13,7 +13,7 @@ class MaxentropyMedianDichtomizationTransformer(BaseEstimator, TransformerMixin)
         self._splits = None
         self._splits_indices = None
 
-    def _check_X(self, X, n_features=None):
+    def _check_X(self, X):
         _X = None
         if not hasattr(X, 'dtype'):
             _X = check_array(as_float_array(X))
@@ -34,7 +34,6 @@ class MaxentropyMedianDichtomizationTransformer(BaseEstimator, TransformerMixin)
     def _get_maxentropy_split(self, X):
         # O(n^2)
         block_size = X.shape[0]
-        ix_max_entropy = -1
         X_diff = np.diff(X)
 
         start_point = X.shape[0] // 2
@@ -42,8 +41,6 @@ class MaxentropyMedianDichtomizationTransformer(BaseEstimator, TransformerMixin)
         right_point = right_entropy = None
         left_point = left_entropy = None
 
-        max_entropy = -1
-        max_probas = None
         # define point where to start looking for
         # highest entropy
         if X_diff[start_point] == 0:
@@ -98,7 +95,7 @@ class MaxentropyMedianDichtomizationTransformer(BaseEstimator, TransformerMixin)
         return 0, -1
 
     def _dichtomize(self, X):
-        # O(n^2 * log n)
+        # O(n)
 
         _iters = np.log2(self.n_splits)
         if _iters - int(_iters) != 0:
@@ -150,7 +147,7 @@ class MaxentropyMedianDichtomizationTransformer(BaseEstimator, TransformerMixin)
 
     def transform(self, X):
         _, n_features = X.shape
-        X = self._check_X(X, n_features)
+        X = self._check_X(X)
 
         X_categorical = list()
         for ix in range(n_features):

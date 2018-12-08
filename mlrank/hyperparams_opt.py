@@ -54,7 +54,8 @@ def bayesian_optimization_lightgbm(X, y, cv=6, max_iter_opt=15):
         verbose=0
     )
 
-    svr_opt.init(10)
-    svr_opt.maximize(n_iter=max_iter_opt)
-
-    return svr_opt.res['max']['max_params']
+    svr_opt.maximize(
+        init_points=10,
+        n_iter=max_iter_opt
+    )
+    return svr_opt.max['params']  # ['C']

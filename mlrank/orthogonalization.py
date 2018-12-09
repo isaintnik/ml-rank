@@ -18,7 +18,7 @@ def cross_entropy_discrete(p, q):
     """
     p = np.array(p)
     q = np.array(q)
-    return -np.sum(p * np.log(q + 1))
+    return np.sum(p * np.log(q + 1))
 
 
 def synchronize_two_dicts(_a: dict, _b: dict):
@@ -44,8 +44,8 @@ def calc_cross_entropy_from_binary_features(real, pred):
     :param dataset_size:
     :return:
     """
-    real = np.asarray(real.sum(1))
-    pred = np.asarray(pred.sum(1))
+    real = np.asarray(real.sum(1)) # [1, 1, 1, ..., 1]
+    pred = np.asarray(pred.sum(1)) # [1, 0, 0, ..., 1]
 
     pred[np.argwhere(pred == 2)] = 1
 

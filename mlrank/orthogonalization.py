@@ -4,6 +4,7 @@ from copy import deepcopy as copy
 from sklearn.base import BaseEstimator
 from sklearn.preprocessing import OneHotEncoder
 from sklearn.utils.multiclass import type_of_target
+from sklearn.utils import deprecated
 from scipy import sparse
 
 from mlrank.dichtomization import MaxentropyMedianDichtomizationTransformer
@@ -18,7 +19,7 @@ def cross_entropy_discrete(p, q):
     """
     p = np.array(p)
     q = np.array(q)
-    return np.sum(p * np.log(q + 1))
+    return np.sum(p * np.log(q))
 
 
 def synchronize_two_dicts(_a: dict, _b: dict):
@@ -35,7 +36,12 @@ def synchronize_two_dicts(_a: dict, _b: dict):
         if i not in _b.keys():
             _b[i] = 0
 
+def calc_cross_entropy_from_probas(real: np.array, pred: np.array):
+    pass
 
+
+
+@deprecated(extra='invalid entropy function')
 def calc_cross_entropy_from_binary_features(real, pred):
     """
     Calculate cross entropy between feature and it's prediction
@@ -143,6 +149,9 @@ class MLRankTransformer(BaseEstimator, DichtomizedTransformer):
         """
         super().__init__(dichtomized, n_splits)
 
+        if not hasattr(base_estimator, 'predict_proba'):
+            raise Exception('ml-rank requires probabilistic model')
+
         self.base_estimator = base_estimator
         self.random_seed = random_seed
         self.exhausitve = exhausitve
@@ -219,7 +228,15 @@ class MLRankTransformer(BaseEstimator, DichtomizedTransformer):
 
 
 class MLRankTargetBasedTransformer(BaseEstimator, DichtomizedTransformer):
-    def __init__(self, base_estimator, dichtomized=False, n_splits=32, random_seed=42, verbose=1, use_xor=True, use_max_entropy=True):
+    def __init__(self,
+                 base_estimator,
+                 dichtomized=False,
+                 n_splits=32,
+                 random_seed=42,
+                 verbose=1,
+                 use_xor=True,
+                 decision_boundary=.5,
+                 use_max_entropy=True):
         """
         :param base_estimator:
         :param dichtomized: whether dataset is dichtomized or not
@@ -229,6 +246,7 @@ class MLRankTargetBasedTransformer(BaseEstimator, DichtomizedTransformer):
         """
         super().__init__(dichtomized, n_splits)
 
+        self.decision_boundary = decision_boundary
         self.use_max_entropy = use_max_entropy
         self.use_xor = use_xor
         self.base_estimator = base_estimator
@@ -261,21 +279,19 @@ class MLRankTargetBasedTransformer(BaseEstimator, DichtomizedTransformer):
 
                 estimator.fit(model_input_features, self._target_categorical)
 
-                pred = estimator.predict(model_input_features)
-                real = self._target_onehot
-
-                pred_onehot = self._target_encoder.transform(pred.reshape(-1, 1))
+                pred_proba = estimator.predict_proba(model_input_features)
+                pred_onehot = (pred_proba > self.decision_boundary).astype(np.int32)#self._target_encoder.transform(pred.reshape(-1, 1))
 
                 if self.use_xor:
                     # calculate difference
-                    pred = (pred_onehot != real).astype(np.int32)
+                    pred_diff = (pred_onehot != self._target_onehot).astype(np.int32)
                 else:
-                    pred = (pred_onehot == real).astype(np.int32)
+                    pred_diff = (pred_onehot == self._target_onehot).astype(np.int32)
 
-                entropy = calc_cross_entropy_from_binary_features(real, pred)
+                entropy = calc_cross_entropy_from_binary_features(self._target_onehot.astype(float), pred_proba)
 
                 if self.use_max_entropy and (entropy > entropy_current) or not self.use_max_entropy and (entropy < entropy_current):
-                    entropy_feature_value = pred
+                    entropy_feature_value = pred_diff
                     entropy_feature_ix = ix_current_feature
                     entropy_current = entropy
 

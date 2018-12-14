@@ -166,6 +166,9 @@ class MLRankTransformer(BaseEstimator, DichtomizedTransformer):
         """
         super().__init__(dichtomized, n_splits)
 
+        if not hasattr(base_estimator, 'predict_proba'):
+            raise Exception('ml-rank requires probabilistic model')
+
         self.base_estimator = base_estimator
         self.random_seed = random_seed
         self.exhausitve = exhausitve
@@ -198,7 +201,7 @@ class MLRankTransformer(BaseEstimator, DichtomizedTransformer):
                 estimator.fit(model_input_features,
                               self._feature_space[ix_current_feature]['categorical'].squeeze())
 
-                pred_proba = estimator.predict(model_input_features)
+                pred_proba = estimator.predict_proba(model_input_features)
                 real = self._feature_space[ix_current_feature]['binary']
                 entropy = cross_entropy_from_probas(real, pred_proba)
 

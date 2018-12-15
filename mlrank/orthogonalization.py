@@ -65,8 +65,11 @@ def calc_cross_entropy_from_binary_features(real, pred):
 
 
 def cross_entropy_from_probas(real, pred):
+    #print(pred[0, :])
+
     if hasattr(real, 'todense'):
         # for sparse matrices (sparse encoding of real)
+        pred[pred == 0] = 1e-8
         result = real.multiply(np.log(pred))
         # by some reason it returns COO
         result = result.tocsr()
@@ -74,8 +77,8 @@ def cross_entropy_from_probas(real, pred):
         # for arrays (dense encoding)
         result = real * np.log(pred)
 
-    result = np.nan_to_num(result)
-    result[result == -np.inf] = 0
+    #result = np.nan_to_num(result)
+    #result[result == -np.inf] = 0
     return -result.sum()
 
 
@@ -108,7 +111,7 @@ class DichtomizedTransformer(object):
 
         if not self.dichtomized:
             for i in range(X.shape[1]):
-                # TODO: check whether the feature is continious
+                # TODO: check whether the feature is continuous
                 feature = X[:, i].reshape(-1, 1)
                 dichtomizer = MaxentropyMedianDichtomizationTransformer(self.n_splits).fit(feature)
                 feature_dichtomized = dichtomizer.transform(feature)
@@ -186,9 +189,9 @@ class MLRankTransformer(BaseEstimator, DichtomizedTransformer):
             max_entropy_feature_value = None
 
             if self.verbose > 1:
-                print('currently processed {} features out of {}'.format(len(active_features_subset),
-                                                                         len(self._feature_space)))
-                print('number of active features {}'.format(len(active_features_subset)))
+                print(f'currently processed {len(active_features_subset)} \
+                    features out of {len(self._feature_space)}')
+                print(f'number of active features {len(active_features_subset)}')
 
             for ix_current_feature in free_features_ix:
                 if len(active_features_subset) > 1:
@@ -252,8 +255,7 @@ class MLRankTargetBasedTransformer(BaseEstimator, DichtomizedTransformer):
                  n_splits=32,
                  random_seed=42,
                  verbose=1,
-                 decision_boundary=.5,
-                 use_max_entropy=True):
+                 decision_boundary=.5):
         """
         :param base_estimator:
         :param dichtomized: whether dataset is dichtomized or not
@@ -267,32 +269,25 @@ class MLRankTargetBasedTransformer(BaseEstimator, DichtomizedTransformer):
             raise Exception('ml-rank requires probabilistic model')
 
         self.decision_boundary = decision_boundary
-        self.use_max_entropy = use_max_entropy
         self.base_estimator = base_estimator
         self.random_seed = random_seed
         self.verbose = verbose
         self.transformation = transformation
 
     def _fit_transform(self):
-        from sklearn.metrics import accuracy_score
         free_features_ix = [i for i in range(len(self._feature_space))]
         active_features_subset = []
         active_features_subset_ix = []
         entropy_prev = None
 
         while len(active_features_subset) != len(self._feature_space):
-            entropy_current = None
-            if self.use_max_entropy:
-                entropy_current = -np.inf
-            else:
-                entropy_current = np.inf
-
+            entropy_min = np.inf
             entropy_feature_ix = -1
             entropy_feature_value = None
 
             for ix_current_feature in free_features_ix:
-                if len(active_features_subset) > 1:
-                    model_input_features = sparse.hstack(active_features_subset)
+                if active_features_subset:
+                    model_input_features = sparse.hstack(active_features_subset + [self._feature_space[ix_current_feature]['binary']])
                 else:
                     model_input_features = self._feature_space[ix_current_feature]['binary']
 
@@ -306,16 +301,17 @@ class MLRankTargetBasedTransformer(BaseEstimator, DichtomizedTransformer):
                 pred_onehot = sparse.csr_matrix(pred_proba > self.decision_boundary).astype(np.int32)
                 pred_diff = self.transformation(pred_onehot, self._target_onehot).astype(np.int32)
 
-
-                if self.use_max_entropy and (entropy > entropy_current) or not self.use_max_entropy and (entropy < entropy_current):
-                    entropy_feature_value = pred_diff
+                if entropy < entropy_min:
+                    entropy_feature_value = self._feature_space[ix_current_feature]['binary']#pred_onehot#pred_diff
                     entropy_feature_ix = ix_current_feature
-                    entropy_current = entropy
+                    entropy_min = entropy
 
             # if there is no changes in entropy, return given dataset
             # since there is no point to continue
-            if entropy_prev is None or entropy_prev != entropy_current:
-                entropy_prev = entropy_current
+            ##print(entropy_min, entropy_prev)
+            print(entropy_min, entropy_prev)
+            if entropy_prev is None or entropy_prev > entropy_min:
+                entropy_prev = entropy_min
                 free_features_ix.remove(entropy_feature_ix)
                 active_features_subset.append(entropy_feature_value)
                 active_features_subset_ix.append(entropy_feature_ix)

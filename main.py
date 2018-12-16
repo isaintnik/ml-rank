@@ -2,22 +2,14 @@ import warnings
 warnings.filterwarnings('ignore')
 
 from sklearn.preprocessing import StandardScaler
-from mlrank.benchmarks.optimal_subset import *
+from mlrank.benchmarks.optimal_subset import OptimalSubsetBenchmarkFacade
+from mlrank.benchmarks.optimal_projection import OptimalProjectionBenchmarkFacade
 
 import pandas as pd
 import numpy as np
 
-
-def to_pandas(bench_result: dict):
-    pandas_input = {k: {'nobs': v.nobs, 'mean': v.mean, 'variance': v.variance}
-                    for k, v in bench_result.items()}
-
-    return pd.DataFrame(pandas_input).T
-
-
-def compile_results(pandas_results: dict, by: str='mean'):
-    pandas_results = [v[by].rename(k) for k, v in pandas_results.items()]
-    return pd.concat(pandas_results, axis=1)
+import os
+import argparse
 
 
 def load_data():
@@ -31,16 +23,15 @@ def load_data():
 
 
 if __name__ == '__main__':
-    #bench_result_lr = lr_benchmark(*load_data(), 5, 1)
-    #bench_result_svc = lr_benchmark(*load_data(), 5, 1)
-    results = dict()
-    print('calculating benchmarks for svc (4 benchmarks)...')
-    results['svc'] = to_pandas(svc_benchmark(*load_data(), 5, 50))
-    print('calculating benchmarks for lr (4 benchmarks)...')
-    results['lr'] = to_pandas(lr_benchmark(*load_data(), 5, 50))
-    print('calculating benchmarks for rf (4 benchmarks)...')
-    results['rf'] = to_pandas(rf_benchmark(*load_data(), 5, 50))
+    parser = argparse.ArgumentParser(description="benchmarks for various algorithms")
+    parser.add_argument('--bench_type', dest='bench_type', default='projections', help='projections/subsets')
 
-    # save to csv
-    compile_results(results).to_csv('./stats.csv')
+    args = parser.parse_args()
 
+    if args.bench_type == 'subsets':
+        facade = OptimalSubsetBenchmarkFacade(5, 1, os.path.dirname(os.path.realpath(__file__)) + '/stats')
+        facade.build(*load_data())
+
+    if args.bench_type == 'projections':
+        facade = OptimalProjectionBenchmarkFacade(1, 10, 50, os.path.dirname(os.path.realpath(__file__)) + '/stats')
+        facade.build(*load_data())

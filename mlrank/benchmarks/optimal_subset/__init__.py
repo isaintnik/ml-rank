@@ -1,4 +1,4 @@
-from mlrank.benchmarks.optimal_subset.optimal_subset_alrorithm import (
+from .optimal_subset_alrorithm import (
     SFSWrap,
     RFEWrap,
     EFSWrap,
@@ -11,8 +11,9 @@ from .optimal_subset_benchmark import (
 )
 
 from .benchmarks import (
-    lr_benchmark,
-    svc_benchmark,
-    rf_benchmark
+    lr_optimal_subset_benchmark,
+    svc_optimal_subset_benchmark,
+    rf_optimal_subset_benchmark
 )
 
+from .facade import OptimalSubsetBenchmarkFacade

@@ -24,19 +24,19 @@ def calc_benchmarks(model, X, y, n_features, n_holdout_validations):
 
 
 # TODO: estimation of hyperparams is now calculated on a static subset of data
-def lr_benchmark(X, y, n_features, n_holdout_validations):
+def lr_optimal_subset_benchmark(X, y, n_features, n_holdout_validations):
     X_hyper, X_rest, y_hyper, y_rest = train_test_split(X, y, random_state=42, test_size=.80)
     model = get_optimized_logistic_regression(X_hyper, y_hyper)
     return calc_benchmarks(model, X_rest, y_rest, n_features, n_holdout_validations)
 
 
-def svc_benchmark(X, y, n_features, n_holdout_validations):
+def svc_optimal_subset_benchmark(X, y, n_features, n_holdout_validations):
     X_hyper, X_rest, y_hyper, y_rest = train_test_split(X, y, random_state=42, test_size=.80)
     model = get_optimized_svc(X_hyper, y_hyper)
     return calc_benchmarks(model, X_rest, y_rest, n_features, n_holdout_validations)
 
 
-def rf_benchmark(X, y, n_features, n_holdout_validations):
+def rf_optimal_subset_benchmark(X, y, n_features, n_holdout_validations):
     X_hyper, X_rest, y_hyper, y_rest = train_test_split(X, y, random_state=42, test_size=.80)
     model = get_optimized_lightgbm(X_hyper, y_hyper)
     return calc_benchmarks(model, X_rest, y_rest, n_features, n_holdout_validations)

@@ -302,14 +302,13 @@ class MLRankTargetBasedTransformer(BaseEstimator, DichtomizedTransformer):
                 pred_diff = self.transformation(pred_onehot, self._target_onehot).astype(np.int32)
 
                 if entropy < entropy_min:
-                    entropy_feature_value = self._feature_space[ix_current_feature]['binary']#pred_onehot#pred_diff
+                    entropy_feature_value = self._feature_space[ix_current_feature]['binary']
                     entropy_feature_ix = ix_current_feature
                     entropy_min = entropy
 
             # if there is no changes in entropy, return given dataset
             # since there is no point to continue
             ##print(entropy_min, entropy_prev)
-            print(entropy_min, entropy_prev)
             if entropy_prev is None or entropy_prev > entropy_min:
                 entropy_prev = entropy_min
                 free_features_ix.remove(entropy_feature_ix)

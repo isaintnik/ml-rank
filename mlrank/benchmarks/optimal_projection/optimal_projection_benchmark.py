@@ -46,7 +46,7 @@ class OptimalProjectionBenchmark(object):
             self.op_algorithm.set_projections_num(j)
             for i in tqdm(range(self.n_holdout_validations)):
                 X_pca = self.op_algorithm.fit_transform(X)
-                X_train, X_test, y_train, y_test = train_test_split(X_pca, y, test_size=0.5, shuffle=True)
+                X_train, X_test, y_train, y_test = train_test_split(X_pca, y, test_size=0.30, shuffle=True)
 
                 estimator = deepcopy(self.estimator)
                 estimator.fit(X_train, y_train)

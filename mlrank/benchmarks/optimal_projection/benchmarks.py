@@ -6,7 +6,7 @@ from mlrank.hyperparams_opt import (
     get_optimized_lightgbm
 )
 
-from sklearn.model_selection import train_test_split
+#from sklearn.model_selection import train_test_split
 
 
 def calc_benchmarks(model, X, y, n_min_projections, n_max_projections, n_holdout_validations):
@@ -20,10 +20,10 @@ def calc_benchmarks(model, X, y, n_min_projections, n_max_projections, n_holdout
         n_min_projections=n_min_projections, n_max_projections=n_max_projections
     )
 
-    tsne_bench = OptimalProjectionBenchmark(
-        model, TSNEWrap(), n_holdout_validations=n_holdout_validations,
-        n_min_projections=n_min_projections, n_max_projections=n_max_projections
-    )
+    #tsne_bench = OptimalProjectionBenchmark(
+    #    model, TSNEWrap(), n_holdout_validations=n_holdout_validations,
+    #    n_min_projections=n_min_projections, n_max_projections=n_max_projections
+    #)
 
     lle_bench = OptimalProjectionBenchmark(
         model, LLEWrap(), n_holdout_validations=n_holdout_validations,
@@ -39,18 +39,18 @@ def calc_benchmarks(model, X, y, n_min_projections, n_max_projections, n_holdout
 
 
 def lr_projection_benchmark(X, y, n_min_projections, n_max_projections, n_holdout_validations):
-    X_hyper, X_rest, y_hyper, y_rest = train_test_split(X, y, random_state=42, test_size=.80)
-    model = get_optimized_logistic_regression(X_hyper, y_hyper)
-    return calc_benchmarks(model, X_rest, y_rest, n_min_projections, n_max_projections, n_holdout_validations)
+    #X_hyper, X_rest, y_hyper, y_rest = train_test_split(X, y, random_state=42, test_size=.80)
+    model = get_optimized_logistic_regression(X, y)
+    return calc_benchmarks(model, X, y, n_min_projections, n_max_projections, n_holdout_validations)
 
 
 def svc_projection_benchmark(X, y, n_min_projections, n_max_projections, n_holdout_validations):
-    X_hyper, X_rest, y_hyper, y_rest = train_test_split(X, y, random_state=42, test_size=.80)
-    model = get_optimized_svc(X_hyper, y_hyper)
-    return calc_benchmarks(model, X_rest, y_rest, n_min_projections, n_max_projections, n_holdout_validations)
+    #X_hyper, X_rest, y_hyper, y_rest = train_test_split(X, y, random_state=42, test_size=.80)
+    model = get_optimized_svc(X, y)
+    return calc_benchmarks(model, X, y, n_min_projections, n_max_projections, n_holdout_validations)
 
 
 def rf_projection_benchmark(X, y, n_min_projections, n_max_projections, n_holdout_validations):
-    X_hyper, X_rest, y_hyper, y_rest = train_test_split(X, y, random_state=42, test_size=.80)
-    model = get_optimized_lightgbm(X_hyper, y_hyper)
-    return calc_benchmarks(model, X_rest, y_rest, n_min_projections, n_max_projections, n_holdout_validations)
+    #X_hyper, X_rest, y_hyper, y_rest = train_test_split(X, y, random_state=42, test_size=.80)
+    model = get_optimized_lightgbm(X, y)
+    return calc_benchmarks(model, X, y, n_min_projections, n_max_projections, n_holdout_validations)

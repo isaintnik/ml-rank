@@ -105,6 +105,7 @@ class RFImportancesWrap(OSAlgorithm):
         fi = self.os_model.feature_importances_
         return np.argsort(fi)[::-1]
 
+
 class MLRankWrap(OSAlgorithm):
     def __init__(self, model, n_features: int, params = dict()):
         super().__init__(deepcopy(model), n_features)

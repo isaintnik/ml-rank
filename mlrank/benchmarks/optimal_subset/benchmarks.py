@@ -9,6 +9,46 @@ from mlrank.hyperparams_opt import (
 from sklearn.model_selection import train_test_split
 
 
+def make_mlrank_benchmarks(model, X, y, n_features, n_holdout_validations):
+    from sklearn.calibration import CalibratedClassifierCV
+    from sklearn.svm import LinearSVC
+    # TODO: kostyli
+
+    if isinstance(model, LinearSVC):
+        model = CalibratedClassifierCV(model)
+
+    return {
+        'mlr_4b': OptimalSubsetBenchmark(
+            MLRankWrap(model, n_features, params={
+                'transformation': lambda a, b: a != b,
+                'verbose': 1, 'n_splits': 4
+            }),
+            n_holdout_validations=n_holdout_validations
+        ).benchmark(X, y),
+        'mlr_8b': OptimalSubsetBenchmark(
+            MLRankWrap(model, n_features, params={
+                'transformation': lambda a, b: a != b,
+                'verbose': 1, 'n_splits': 4
+            }),
+            n_holdout_validations=n_holdout_validations
+        ).benchmark(X, y),
+        'mlr_16b': OptimalSubsetBenchmark(
+            MLRankWrap(model, n_features, params={
+                'transformation': lambda a, b: a != b,
+                'verbose': 1, 'n_splits': 4
+            }),
+            n_holdout_validations=n_holdout_validations
+        ).benchmark(X, y),
+        'mlr_32b': OptimalSubsetBenchmark(
+            MLRankWrap(model, n_features, params={
+                'transformation': lambda a, b: a != b,
+                'verbose': 1, 'n_splits': 4
+            }),
+            n_holdout_validations=n_holdout_validations
+        ).benchmark(X, y)
+    }
+
+
 def calc_benchmarks(model, X, y, n_features, n_holdout_validations):
     sfs_bench = OptimalSubsetBenchmark(SFSWrap(model, n_features), n_holdout_validations=n_holdout_validations)
     rfe_bench = OptimalSubsetBenchmark(RFEWrap(model, n_features), n_holdout_validations=n_holdout_validations)
@@ -16,10 +56,11 @@ def calc_benchmarks(model, X, y, n_features, n_holdout_validations):
     rff_bench = OptimalSubsetBenchmark(RFImportancesWrap(model, n_features), n_holdout_validations=n_holdout_validations)
 
     return {
-        'sfs': sfs_bench.benchmark(X, y),
-        'rfe': rfe_bench.benchmark(X, y),
-        'lrc': lrc_bench.benchmark(X, y),
-        'rff': rff_bench.benchmark(X, y)
+        #'sfs': sfs_bench.benchmark(X, y),
+        #'rfe': rfe_bench.benchmark(X, y),
+        #'lrc': lrc_bench.benchmark(X, y),
+        #'rff': rff_bench.benchmark(X, y),
+        **make_mlrank_benchmarks(model, X, y, n_features, n_holdout_validations)
     }
 
 

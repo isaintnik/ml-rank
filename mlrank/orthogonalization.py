@@ -266,6 +266,7 @@ class MLRankTargetBasedTransformer(BaseEstimator, DichtomizedTransformer):
         super().__init__(dichtomized, n_splits)
 
         if not hasattr(base_estimator, 'predict_proba'):
+            print(base_estimator)
             raise Exception('ml-rank requires probabilistic model')
 
         self.decision_boundary = decision_boundary

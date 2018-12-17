@@ -10,13 +10,15 @@ from sklearn.feature_selection import RFE
 from sklearn.linear_model import LogisticRegression
 from mlxtend.feature_selection import SequentialFeatureSelector, ExhaustiveFeatureSelector
 
+from mlrank.orthogonalization import MLRankTargetBasedTransformer
+
 SCORING_METHOD = 'accuracy'
 
 
 class OSAlgorithm(object):
     __metaclass__ = ABCMeta
 
-    def __init__(self, model, n_features=int):
+    def __init__(self, model, n_features: int, params = dict()):
         self.estimator = model
         self.n_features = n_features
 
@@ -30,10 +32,10 @@ class OSAlgorithm(object):
 
 
 class SFSWrap(OSAlgorithm):
-    def __init__(self, model, n_features: int):
+    def __init__(self, model, n_features: int, params = dict()):
         super().__init__(deepcopy(model), n_features)
         self.n_features = n_features
-        self.os_model = SequentialFeatureSelector(model, n_features, scoring=SCORING_METHOD)
+        self.os_model = SequentialFeatureSelector(self.estimator, n_features, scoring=SCORING_METHOD)
 
     def fit(self, X, y):
         self.os_model.fit(X, y)
@@ -44,10 +46,10 @@ class SFSWrap(OSAlgorithm):
 
 
 class RFEWrap(OSAlgorithm):
-    def __init__(self, model, n_features: int):
+    def __init__(self, model, n_features: int, params = dict()):
         super().__init__(deepcopy(model), n_features)
         self.n_features = n_features
-        self.os_model = RFE(model, n_features)
+        self.os_model = RFE(self.estimator, n_features)
 
     def fit(self, X, y):
         self.os_model.fit(X, y)
@@ -58,9 +60,9 @@ class RFEWrap(OSAlgorithm):
 
 
 class EFSWrap(OSAlgorithm):
-    def __init__(self, model, n_features: int):
+    def __init__(self, model, n_features: int, params = dict()):
         super().__init__(deepcopy(model), n_features)
-        self.os_model = ExhaustiveFeatureSelector(model, n_features)
+        self.os_model = ExhaustiveFeatureSelector(self.estimator, n_features)
 
     def fit(self, X, y):
         self.os_model.fit(X, y)
@@ -71,7 +73,7 @@ class EFSWrap(OSAlgorithm):
 
 
 class LRCoefficentsWrap(OSAlgorithm):
-    def __init__(self, model, n_features: int):
+    def __init__(self, model, n_features: int, params = dict()):
         super().__init__(deepcopy(model), n_features)
 
         self.os_model = LogisticRegression(C=1e10)
@@ -88,7 +90,7 @@ class LRCoefficentsWrap(OSAlgorithm):
 
 
 class RFImportancesWrap(OSAlgorithm):
-    def __init__(self, model, n_features: int):
+    def __init__(self, model, n_features: int, params = dict()):
         super().__init__(deepcopy(model), n_features)
         self.os_model = None
 
@@ -102,3 +104,14 @@ class RFImportancesWrap(OSAlgorithm):
     def get_important_features(self):
         fi = self.os_model.feature_importances_
         return np.argsort(fi)[::-1]
+
+class MLRankWrap(OSAlgorithm):
+    def __init__(self, model, n_features: int, params = dict()):
+        super().__init__(deepcopy(model), n_features)
+        self.os_model = MLRankTargetBasedTransformer(base_estimator=self.estimator, **params)
+
+    def fit(self, X, y):
+        _, self.important_features = self.os_model.fit_transform(X, y)
+
+    def get_important_features(self):
+        return self.important_features[:self.n_features]

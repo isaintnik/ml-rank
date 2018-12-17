@@ -19,7 +19,7 @@ def load_data():
 
     X = StandardScaler().fit_transform(X)
 
-    return X, y
+    return X, y.reshape(-1, 1)
 
 
 if __name__ == '__main__':
@@ -29,7 +29,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     if args.bench_type == 'subsets':
-        facade = OptimalSubsetBenchmarkFacade(5, 1, os.path.dirname(os.path.realpath(__file__)) + '/stats')
+        facade = OptimalSubsetBenchmarkFacade(5, 50, os.path.dirname(os.path.realpath(__file__)) + '/stats')
         facade.build(*load_data())
 
     if args.bench_type == 'projections':

@@ -21,6 +21,7 @@ def cross_entropy_discrete(p, q):
     q = np.array(q)
     return -np.sum(p * np.log(q))
 
+
 @deprecated(extra='entropy calculation approach is changed')
 def synchronize_two_dicts(_a: dict, _b: dict):
     """
@@ -35,6 +36,7 @@ def synchronize_two_dicts(_a: dict, _b: dict):
 
         if i not in _b.keys():
             _b[i] = 0
+
 
 @deprecated(extra='invalid entropy function')
 def calc_cross_entropy_from_binary_features(real, pred):
@@ -253,7 +255,6 @@ class MLRankTargetBasedTransformer(BaseEstimator, DichtomizedTransformer):
                  transformation,
                  dichtomized=False,
                  n_splits=32,
-                 random_seed=42,
                  verbose=1,
                  decision_boundary=.5):
         """
@@ -271,7 +272,6 @@ class MLRankTargetBasedTransformer(BaseEstimator, DichtomizedTransformer):
 
         self.decision_boundary = decision_boundary
         self.base_estimator = base_estimator
-        self.random_seed = random_seed
         self.verbose = verbose
         self.transformation = transformation
 
@@ -303,26 +303,28 @@ class MLRankTargetBasedTransformer(BaseEstimator, DichtomizedTransformer):
                 pred_diff = self.transformation(pred_onehot, self._target_onehot).astype(np.int32)
 
                 if entropy < entropy_min:
-                    entropy_feature_value = self._feature_space[ix_current_feature]['binary']
+                    entropy_feature_value = pred_diff#self._feature_space[ix_current_feature]['binary']
                     entropy_feature_ix = ix_current_feature
                     entropy_min = entropy
 
             # if there is no changes in entropy, return given dataset
             # since there is no point to continue
             ##print(entropy_min, entropy_prev)
-            if entropy_prev is None or entropy_prev > entropy_min:
-                entropy_prev = entropy_min
-                free_features_ix.remove(entropy_feature_ix)
-                active_features_subset.append(entropy_feature_value)
-                active_features_subset_ix.append(entropy_feature_ix)
-            else:
-                break
+            #if entropy_prev is None or entropy_prev > entropy_min:
+            #    entropy_prev = entropy_min
+            #    free_features_ix.remove(entropy_feature_ix)
+            #    active_features_subset.append(entropy_feature_value)
+            #    active_features_subset_ix.append(entropy_feature_ix)
+            #else:
+            #    break
+
+            free_features_ix.remove(entropy_feature_ix)
+            active_features_subset.append(entropy_feature_value)
+            active_features_subset_ix.append(entropy_feature_ix)
 
         return sparse.hstack(active_features_subset), active_features_subset_ix
 
     def fit_transform(self, X, y=None):
-        np.random.seed(self.random_seed)
-
         self._dichtomize_features(X)
         self._dichtomize_target(y)
 

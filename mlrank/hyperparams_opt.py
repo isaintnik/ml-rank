@@ -41,7 +41,7 @@ def bayesian_optimization_lightgbm(X, y, cv=6, max_iter_opt=15):
     svr_opt = BayesianOptimization(
         lambda colsample_bytree, subsample_freq, subsample, n_estimators: cross_val_score(
             LGBMClassifier(
-                boosting_type='rf',
+                boosting_type='gbdt',
                 colsample_bytree=colsample_bytree,
                 subsample_freq=int(subsample_freq),
                 subsample=subsample,

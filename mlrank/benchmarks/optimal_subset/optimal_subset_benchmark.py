@@ -22,6 +22,16 @@ class OptimalSubsetBenchmark(object):
 
         self.stats = None
 
+    def get_stats(self):
+        return {
+            "nobs": len(self.stats),
+            "raw": self.stats,
+            "mean": np.mean(self.stats),
+            "median": np.median(self.stats),
+            "variance": np.var(self.stats),
+            **{f"percentile_{k}": np.percentile(self.stats, k) for k in range(5, 95, 5)},
+        }
+
     def benchmark(self, X, y):
         self.stats = list()
         for i in tqdm(range(self.n_holdout_validations)):
@@ -36,4 +46,4 @@ class OptimalSubsetBenchmark(object):
             score = self.metric(estimator.predict(X_val[:, ix_features]), y_val)
             self.stats.append(score)
 
-        return stats.describe(self.stats)
+        return self#stats.describe(self.stats)

@@ -85,7 +85,7 @@ def cross_entropy_from_probas(real, pred):
 
 
 class DichtomizedTransformer(object):
-    def __init__(self, dichtomized=False, n_splits=32):
+    def __init__(self, dichtomized=False, use_ordered_absolute_values=False, n_splits=32):
         """
         Dichtomization of features and target
         :param dichtomized: whether dataset is dichtomized or not
@@ -93,6 +93,7 @@ class DichtomizedTransformer(object):
         """
         self.n_splits = n_splits
         self.dichtomized = dichtomized
+        self.use_ordered_absolute_values = use_ordered_absolute_values
 
         self._feature_space = None
         self._feature_dichtomizers = None
@@ -117,11 +118,22 @@ class DichtomizedTransformer(object):
                 feature = X[:, i].reshape(-1, 1)
                 dichtomizer = MaxentropyMedianDichtomizationTransformer(self.n_splits).fit(feature)
                 feature_dichtomized = dichtomizer.transform(feature)
-                onehot_encoder = OneHotEncoder(sparse=True).fit(feature_dichtomized)
 
-                self._feature_dichtomizers.append({'dichtomizer': dichtomizer, 'encoder': onehot_encoder})
-                self._feature_space.append(
-                    {'categorical': feature_dichtomized, 'binary': onehot_encoder.transform(feature_dichtomized)})
+                if not self.use_ordered_absolute_values:
+                    onehot_encoder = OneHotEncoder(sparse=True).fit(feature_dichtomized)
+
+                    self._feature_dichtomizers.append({'dichtomizer': dichtomizer, 'encoder': onehot_encoder})
+                    self._feature_space.append(
+                        {'categorical': feature_dichtomized,
+                         'binary': onehot_encoder.transform(feature_dichtomized)}
+                    )
+                else:
+                    self._feature_dichtomizers.append({'dichtomizer': dichtomizer, 'encoder': None})
+                    self._feature_space.append({
+                        'categorical': feature_dichtomized,
+                        'binary': dichtomizer.transform_ordered(feature)
+                    })
+
         else:
             for i in range(X.shape[1]):
                 feature = X[:, i].reshape(-1, 1)
@@ -254,6 +266,7 @@ class MLRankTargetBasedTransformer(BaseEstimator, DichtomizedTransformer):
                  base_estimator,
                  transformation,
                  dichtomized=False,
+                 use_ordered_absolute_values=True,
                  n_splits=32,
                  verbose=1,
                  decision_boundary=.5):
@@ -264,7 +277,7 @@ class MLRankTargetBasedTransformer(BaseEstimator, DichtomizedTransformer):
         :param random_seed: seed for random initialization of initial feature
         :param verbose: whether output debug information or not
         """
-        super().__init__(dichtomized, n_splits)
+        super().__init__(dichtomized, use_ordered_absolute_values, n_splits)
 
         if not hasattr(base_estimator, 'predict_proba'):
             print(base_estimator)
@@ -288,7 +301,13 @@ class MLRankTargetBasedTransformer(BaseEstimator, DichtomizedTransformer):
 
             for ix_current_feature in free_features_ix:
                 if active_features_subset:
-                    model_input_features = sparse.hstack(active_features_subset + [self._feature_space[ix_current_feature]['binary']])
+                    if not self.use_ordered_absolute_values:
+                        # we got sparse matrix
+                        model_input_features = sparse.hstack(active_features_subset + [self._feature_space[ix_current_feature]['binary']])
+                    else:
+                        # we got dense matrix
+                        model_input_features = np.hstack(
+                            active_features_subset + [self._feature_space[ix_current_feature]['binary']])
                 else:
                     model_input_features = self._feature_space[ix_current_feature]['binary']
 
@@ -303,26 +322,29 @@ class MLRankTargetBasedTransformer(BaseEstimator, DichtomizedTransformer):
                 pred_diff = self.transformation(pred_onehot, self._target_onehot).astype(np.int32)
 
                 if entropy < entropy_min:
-                    entropy_feature_value = pred_diff#self._feature_space[ix_current_feature]['binary']
+                    entropy_feature_value = self._feature_space[ix_current_feature]['binary']
                     entropy_feature_ix = ix_current_feature
                     entropy_min = entropy
 
             # if there is no changes in entropy, return given dataset
             # since there is no point to continue
             ##print(entropy_min, entropy_prev)
-            #if entropy_prev is None or entropy_prev > entropy_min:
-            #    entropy_prev = entropy_min
-            #    free_features_ix.remove(entropy_feature_ix)
-            #    active_features_subset.append(entropy_feature_value)
-            #    active_features_subset_ix.append(entropy_feature_ix)
-            #else:
-            #    break
+            if entropy_prev is None or entropy_prev > entropy_min:
+                entropy_prev = entropy_min
+                free_features_ix.remove(entropy_feature_ix)
+                active_features_subset.append(entropy_feature_value)
+                active_features_subset_ix.append(entropy_feature_ix)
+            else:
+                break
 
-            free_features_ix.remove(entropy_feature_ix)
-            active_features_subset.append(entropy_feature_value)
-            active_features_subset_ix.append(entropy_feature_ix)
+            #free_features_ix.remove(entropy_feature_ix)
+            #active_features_subset.append(entropy_feature_value)
+            #active_features_subset_ix.append(entropy_feature_ix)
 
-        return sparse.hstack(active_features_subset), active_features_subset_ix
+        if not self.use_ordered_absolute_values:
+            return sparse.hstack(active_features_subset), active_features_subset_ix
+
+        return np.hstack(active_features_subset), active_features_subset_ix
 
     def fit_transform(self, X, y=None):
         self._dichtomize_features(X)

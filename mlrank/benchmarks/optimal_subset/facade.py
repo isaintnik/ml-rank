@@ -42,17 +42,17 @@ class OptimalSubsetBenchmarkFacade(object):
 
     def build(self, X, y):
         results = dict()
-        print('calculating benchmarks for lr (4 benchmarks)...')
-        results['lr'] = OptimalSubsetBenchmarkFacade._to_pandas(
-            lr_optimal_subset_benchmark(X, y, self.n_features, self.n_holdout_iterations))
+        #print('calculating benchmarks for lr (4 benchmarks)...')
+        #results['lr'] = OptimalSubsetBenchmarkFacade._to_pandas(
+        #    lr_optimal_subset_benchmark(X, y, self.n_features, self.n_holdout_iterations))
 
         #print('calculating benchmarks for svc (4 benchmarks)...')
         #results['svc'] = OptimalSubsetBenchmarkFacade._to_pandas(
         #    svc_optimal_subset_benchmark(X, y, self.n_features, self.n_holdout_iterations))
-        #
-        #print('calculating benchmarks for rf (4 benchmarks)...')
-        #results['rf'] = OptimalSubsetBenchmarkFacade._to_pandas(
-        #    rf_optimal_subset_benchmark(X, y, self.n_features, self.n_holdout_iterations))
+
+        print('calculating benchmarks for rf (4 benchmarks)...')
+        results['rf'] = OptimalSubsetBenchmarkFacade._to_pandas(
+            rf_optimal_subset_benchmark(X, y, self.n_features, self.n_holdout_iterations))
 
         # save to csv
         self.benchmark_results = results

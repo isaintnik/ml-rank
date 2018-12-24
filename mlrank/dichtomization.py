@@ -8,10 +8,14 @@ class MaxentropyMedianDichtomizationTransformer(BaseEstimator, TransformerMixin)
     def __init__(self, n_splits, verbose=False):
         self.n_splits = n_splits
 
+        self._min_value = None
+        self._max_value = None
+
         self.n_samples = None
         self.n_features = None
         self._splits = None
         self._splits_indices = None
+        self.verbose = verbose
 
     def _check_X(self, X):
         _X = None
@@ -124,6 +128,26 @@ class MaxentropyMedianDichtomizationTransformer(BaseEstimator, TransformerMixin)
             result.append(np.argwhere([k[0] <= x and x < k[1] for k in self._splits[ix]]))
         return np.array(result).reshape(-1, 1)
 
+    def _convert_ordered(self, X, ix):
+        """
+        Return ordered absolute values instead of onehot vector
+        :param X:
+        :param ix:
+        :return:
+        """
+        result = list()
+        for x in X.flatten():
+            #result_row = np.array([k[0] if x <= k[1] else -np.inf for k in reversed(self._splits[ix])][::-1])
+            #result_row[np.isinf(result_row)] = self._min_value
+            #result.append(result_row)
+            interval = None
+            for k in self._splits[ix]:
+                if k[0] < x <= k[1]:
+                    interval = k[0]
+                    break
+            result.append(np.max([interval, self._min_value]))
+        return np.array(result).reshape(X.shape[0], -1)
+
     def fit(self, X):
         X = self._check_X(X)
         self.n_samples, self.n_features = X.shape
@@ -133,6 +157,8 @@ class MaxentropyMedianDichtomizationTransformer(BaseEstimator, TransformerMixin)
 
         for ix in range(self.n_features):
             x = np.sort(X[:, ix].flatten())
+            self._min_value = x[0]
+            self._max_value = x[-1]
             _indices = self._dichtomize(x.flatten())
 
             self._splits_indices.append(_indices)
@@ -141,7 +167,7 @@ class MaxentropyMedianDichtomizationTransformer(BaseEstimator, TransformerMixin)
             self._splits[-1][0][0] = -np.inf
             self._splits[-1][-1][1] = np.inf
 
-            self._splits = np.array(self._splits)
+        self._splits = np.array(self._splits)
 
         return self
 
@@ -149,8 +175,18 @@ class MaxentropyMedianDichtomizationTransformer(BaseEstimator, TransformerMixin)
         _, n_features = X.shape
         X = self._check_X(X)
 
-        X_categorical = list()
+        X_converted = list()
         for ix in range(n_features):
-            X_categorical.append(self._convert(X, ix))
+            X_converted.append(self._convert(X, ix))
 
-        return np.hstack(X_categorical)
+        return np.hstack(X_converted)
+
+    def transform_ordered(self, X):
+        _, n_features = X.shape
+        X = self._check_X(X)
+
+        X_converted = list()
+        for ix in range(n_features):
+            X_converted.append(self._convert_ordered(X, ix))
+
+        return np.hstack(X_converted)

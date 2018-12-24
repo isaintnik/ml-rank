@@ -45,6 +45,13 @@ def make_mlrank_benchmarks(model, X, y, n_features, n_holdout_validations):
                 'verbose': 1, 'n_splits': 32
             }),
             n_holdout_validations=n_holdout_validations
+        ).benchmark(X, y).get_stats(),
+        'mlr_64b': OptimalSubsetBenchmark(
+            MLRankWrap(model, n_features, params={
+                'transformation': lambda a, b: a != b,
+                'verbose': 1, 'n_splits': 64
+            }),
+            n_holdout_validations=n_holdout_validations
         ).benchmark(X, y).get_stats()
     }
 
@@ -56,10 +63,10 @@ def calc_benchmarks(model, X, y, n_features, n_holdout_validations):
     rff_bench = OptimalSubsetBenchmark(RFImportancesWrap(model, n_features), n_holdout_validations=n_holdout_validations)
 
     return {
-        #'sfs': sfs_bench.benchmark(X, y).get_stats(),
-        #'rfe': rfe_bench.benchmark(X, y).get_stats(),
-        #'lrc': lrc_bench.benchmark(X, y).get_stats(),
-        #'rff': rff_bench.benchmark(X, y).get_stats(),
+        'sfs': sfs_bench.benchmark(X, y).get_stats(),
+        'rfe': rfe_bench.benchmark(X, y).get_stats(),
+        'lrc': lrc_bench.benchmark(X, y).get_stats(),
+        'rff': rff_bench.benchmark(X, y).get_stats(),
         **make_mlrank_benchmarks(model, X, y, n_features, n_holdout_validations)
     }
 

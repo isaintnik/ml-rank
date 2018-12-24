@@ -39,22 +39,25 @@ def hyperopt_optimization_lightgbm(X, y, cv=6, max_iter_opt=15):
 
 def bayesian_optimization_lightgbm(X, y, cv=6, max_iter_opt=15):
     svr_opt = BayesianOptimization(
-        lambda colsample_bytree, subsample_freq, subsample, n_estimators: cross_val_score(
+        lambda learning_rate, max_depth: cross_val_score(
             LGBMClassifier(
                 boosting_type='gbdt',
-                colsample_bytree=colsample_bytree,
-                subsample_freq=int(subsample_freq),
-                subsample=subsample,
-                n_estimators=int(n_estimators),
+                learning_rate=learning_rate,
+                max_depth=int(max_depth),
+                subsample=0.7,
+                n_estimators=200,
                 verbose=-1,
+                subsample_freq=5, # ????
+                num_leaves=2**int(max_depth),
                 silent=True
             ),
             X, y.squeeze(), cv=KFold(n_splits=cv).split(X), scoring='accuracy'
         ).mean(),
-        {'colsample_bytree': (0.05, 0.95),
-         'subsample': (0.05, 0.95),
-         'subsample_freq': (1, 50),
-         'n_estimators': (5, 50)},
+        {
+         # глубина?
+         'max_depth': (3, 7),
+         'learning_rate': (1e-3, 0.05)
+        },
          verbose=0
     )
     svr_opt.maximize(
@@ -66,9 +69,13 @@ def bayesian_optimization_lightgbm(X, y, cv=6, max_iter_opt=15):
 
 def get_optimized_lightgbm(X, y):
     params_opt = bayesian_optimization_lightgbm(X, y, cv=4, max_iter_opt=8)
-    params_opt['subsample_freq'] = int(params_opt['subsample_freq'])
-    params_opt['n_estimators'] = int(params_opt['n_estimators'])
-    return LGBMClassifier(boosting_type='rf', min_child_samples=10, **params_opt)
+    params_opt['max_depth'] = int(params_opt['max_depth'])
+    params_opt['subsample'] = 0.7
+    params_opt['n_estimators'] = 200
+    params_opt['subsample_freq'] = 5
+    params_opt['num_leaves'] = int(params_opt['max_depth']) ** 2
+    params_opt['boosting_type'] = 'gbdt'
+    return LGBMClassifier(**params_opt)
 
 
 def get_optimized_logistic_regression(X, y):

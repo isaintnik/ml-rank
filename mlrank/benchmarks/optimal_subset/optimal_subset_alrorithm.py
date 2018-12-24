@@ -49,14 +49,14 @@ class RFEWrap(OSAlgorithm):
     def __init__(self, model, n_features: int, params = dict()):
         super().__init__(deepcopy(model), n_features)
         self.n_features = n_features
-        self.os_model = RFE(self.estimator, n_features)
+        self.os_model = SequentialFeatureSelector(self.estimator, n_features, scoring=SCORING_METHOD, forward=False)
 
     def fit(self, X, y):
         self.os_model.fit(X, y)
 
     def get_important_features(self):
-        feature_names = np.array(list(range(self.os_model.support_.shape[0])))
-        return feature_names[self.os_model.support_]
+        feature_names = self.os_model.subsets_[self.n_features]['feature_names']
+        return [int(i) for i in feature_names]
 
 
 class EFSWrap(OSAlgorithm):

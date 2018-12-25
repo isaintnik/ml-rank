@@ -4,7 +4,8 @@ import os
 from .benchmarks import (
     svc_optimal_subset_benchmark,
     lr_optimal_subset_benchmark,
-    rf_optimal_subset_benchmark
+    rf_optimal_subset_benchmark,
+    gbdt_optimal_subset_benchmark
 )
 
 
@@ -45,10 +46,14 @@ class OptimalSubsetBenchmarkFacade(object):
         #print('calculating benchmarks for lr (4 benchmarks)...')
         #results['lr'] = OptimalSubsetBenchmarkFacade._to_pandas(
         #    lr_optimal_subset_benchmark(X, y, self.n_features, self.n_holdout_iterations))
-
+        #
         #print('calculating benchmarks for svc (4 benchmarks)...')
         #results['svc'] = OptimalSubsetBenchmarkFacade._to_pandas(
         #    svc_optimal_subset_benchmark(X, y, self.n_features, self.n_holdout_iterations))
+        #
+        #print('calculating benchmarks for gbdt (4 benchmarks)...')
+        #results['gbdt'] = OptimalSubsetBenchmarkFacade._to_pandas(
+        #    gbdt_optimal_subset_benchmark(X, y, self.n_features, self.n_holdout_iterations))
 
         print('calculating benchmarks for rf (4 benchmarks)...')
         results['rf'] = OptimalSubsetBenchmarkFacade._to_pandas(

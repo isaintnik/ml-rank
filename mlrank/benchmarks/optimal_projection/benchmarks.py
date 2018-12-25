@@ -3,7 +3,8 @@ from .optimal_projection_algorithm import *
 from mlrank.hyperparams_opt import (
     get_optimized_logistic_regression,
     get_optimized_svc,
-    get_optimized_lightgbm
+    get_optimized_lightgbm_gbdt,
+    get_optimized_lightgbm_rf,
 )
 
 #from sklearn.model_selection import train_test_split
@@ -52,5 +53,10 @@ def svc_projection_benchmark(X, y, n_min_projections, n_max_projections, n_holdo
 
 def rf_projection_benchmark(X, y, n_min_projections, n_max_projections, n_holdout_validations):
     #X_hyper, X_rest, y_hyper, y_rest = train_test_split(X, y, random_state=42, test_size=.80)
-    model = get_optimized_lightgbm(X, y)
+    model = get_optimized_lightgbm_rf(X, y)
+    return calc_benchmarks(model, X, y, n_min_projections, n_max_projections, n_holdout_validations)
+
+def gbdt_projection_benchmark(X, y, n_min_projections, n_max_projections, n_holdout_validations):
+    #X_hyper, X_rest, y_hyper, y_rest = train_test_split(X, y, random_state=42, test_size=.80)
+    model = get_optimized_lightgbm_gbdt(X, y)
     return calc_benchmarks(model, X, y, n_min_projections, n_max_projections, n_holdout_validations)

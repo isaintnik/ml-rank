@@ -4,9 +4,10 @@ import numpy as np
 
 from lightgbm import LGBMClassifier
 
-from mlrank.hyperparams_opt import bayesian_optimization_lightgbm, get_optimized_lightgbm
+from mlrank.hyperparams_opt import (
+    bayesian_optimization_lightgbm, get_optimized_lightgbm_gbdt, get_optimized_lightgbm_rf
+)
 
-from sklearn.feature_selection import RFE
 from sklearn.linear_model import LogisticRegression
 from mlxtend.feature_selection import SequentialFeatureSelector, ExhaustiveFeatureSelector
 
@@ -95,7 +96,7 @@ class RFImportancesWrap(OSAlgorithm):
         self.os_model = None
 
     def fit(self, X, y):
-        self.os_model = get_optimized_lightgbm(X, y)
+        self.os_model = get_optimized_lightgbm_rf(X, y)
         if type(self.estimator) == 'LGBMClassifier':
             self.estimator = self.os_model
 

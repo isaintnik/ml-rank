@@ -3,7 +3,8 @@ from .optimal_subset_alrorithm import *
 from mlrank.hyperparams_opt import (
     get_optimized_logistic_regression,
     get_optimized_svc,
-    get_optimized_lightgbm
+    get_optimized_lightgbm_gbdt,
+    get_optimized_lightgbm_rf
 )
 
 #from sklearn.model_selection import train_test_split
@@ -12,8 +13,8 @@ from mlrank.hyperparams_opt import (
 def make_mlrank_benchmarks(model, X, y, n_features, n_holdout_validations):
     from sklearn.calibration import CalibratedClassifierCV
     from sklearn.svm import LinearSVC
-    # TODO: kostyli
 
+    # TODO: do something
     if isinstance(model, LinearSVC):
         model = CalibratedClassifierCV(model)
 
@@ -83,7 +84,12 @@ def svc_optimal_subset_benchmark(X, y, n_features, n_holdout_validations):
     return calc_benchmarks(model, X, y, n_features, n_holdout_validations)
 
 
+def gbdt_optimal_subset_benchmark(X, y, n_features, n_holdout_validations):
+    #X_hyper, X_rest, y_hyper, y_rest = train_test_split(X, y, random_state=42, test_size=.80)
+    model = get_optimized_lightgbm_gbdt(X, y)
+    return calc_benchmarks(model, X, y, n_features, n_holdout_validations)
+
 def rf_optimal_subset_benchmark(X, y, n_features, n_holdout_validations):
     #X_hyper, X_rest, y_hyper, y_rest = train_test_split(X, y, random_state=42, test_size=.80)
-    model = get_optimized_lightgbm(X, y)
+    model = get_optimized_lightgbm_rf(X, y)
     return calc_benchmarks(model, X, y, n_features, n_holdout_validations)

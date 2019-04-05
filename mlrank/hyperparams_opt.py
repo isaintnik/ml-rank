@@ -37,11 +37,11 @@ def hyperopt_optimization_lightgbm(X, y, cv=6, max_iter_opt=15):
     return best
 
 
-def bayesian_optimization_lightgbm(X, y, cv=6, max_iter_opt=15):
+def bayesian_optimization_lightgbm(X, y, cv=6, max_iter_opt=15, decision_function='gbdt', expra_params:dict=dict()):
     svr_opt = BayesianOptimization(
         lambda learning_rate, max_depth: cross_val_score(
             LGBMClassifier(
-                boosting_type='gbdt',
+                boosting_type=decision_function,
                 learning_rate=learning_rate,
                 max_depth=int(max_depth),
                 subsample=0.7,
@@ -49,7 +49,8 @@ def bayesian_optimization_lightgbm(X, y, cv=6, max_iter_opt=15):
                 verbose=-1,
                 subsample_freq=5, # ????
                 num_leaves=2**int(max_depth),
-                silent=True
+                silent=True,
+                **expra_params
             ),
             X, y.squeeze(), cv=KFold(n_splits=cv).split(X), scoring='accuracy'
         ).mean(),
@@ -67,7 +68,7 @@ def bayesian_optimization_lightgbm(X, y, cv=6, max_iter_opt=15):
     return svr_opt.max['params']  # ['C']
 
 
-def get_optimized_lightgbm(X, y):
+def get_optimized_lightgbm_gbdt(X, y):
     params_opt = bayesian_optimization_lightgbm(X, y, cv=4, max_iter_opt=8)
     params_opt['max_depth'] = int(params_opt['max_depth'])
     params_opt['subsample'] = 0.7
@@ -75,6 +76,18 @@ def get_optimized_lightgbm(X, y):
     params_opt['subsample_freq'] = 5
     params_opt['num_leaves'] = int(params_opt['max_depth']) ** 2
     params_opt['boosting_type'] = 'gbdt'
+    return LGBMClassifier(**params_opt)
+
+
+def get_optimized_lightgbm_rf(X, y):
+    params_opt = bayesian_optimization_lightgbm(X, y, cv=4, max_iter_opt=8, decision_function='rf', expra_params={'colsample_bytree': .2})
+    params_opt['max_depth'] = int(params_opt['max_depth'])
+    params_opt['subsample'] = 0.7
+    params_opt['n_estimators'] = 200
+    params_opt['subsample_freq'] = 5
+    params_opt['num_leaves'] = int(params_opt['max_depth']) ** 2
+    params_opt['boosting_type'] = 'rf'
+    params_opt['colsample_bytree'] = .2
     return LGBMClassifier(**params_opt)
 
 

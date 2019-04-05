@@ -7,7 +7,7 @@ from sklearn.utils.multiclass import type_of_target
 from sklearn.utils import deprecated
 from scipy import sparse
 
-from mlrank.dichtomization import MaxentropyMedianDichtomizationTransformer
+from mlrank.preprocessing.dichtomizer import MaxentropyMedianDichtomizationTransformer
 
 
 def cross_entropy_discrete(p, q):

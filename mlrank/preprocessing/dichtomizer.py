@@ -190,3 +190,26 @@ class MaxentropyMedianDichtomizationTransformer(BaseEstimator, TransformerMixin)
             X_converted.append(self._convert_ordered(X, ix))
 
         return np.hstack(X_converted)
+
+
+def dichtomize_matrix(X, n_bins):
+    new_x = list()
+    splitter = MaxentropyMedianDichtomizationTransformer(n_bins)
+    for i in range(X.shape[1]):
+        new_x.append(splitter.fit(X[:, i].reshape(-1, 1)).transform_ordered(X[:, i].reshape(-1, 1)))
+
+    return np.hstack(new_x)
+
+
+def dichtomize_vector(y, n_bins):
+    splitter = MaxentropyMedianDichtomizationTransformer(n_bins)
+    return splitter.fit(y.reshape(-1, 1)).transform_ordered(y.reshape(-1, 1))
+
+
+def map_continious_names(y, continious_labels = None):
+    if continious_labels is None:
+        continious_labels = np.unique(y).tolist()
+        continious_labels = list(sorted(continious_labels))
+
+    mapping = dict(zip(continious_labels, range(len(continious_labels))))
+    return list(map(lambda x: mapping[x], y.tolist()))

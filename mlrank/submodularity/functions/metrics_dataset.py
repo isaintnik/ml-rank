@@ -86,7 +86,7 @@ def joint_entropy_score_estimate(subset, X):
         features.append(map_continious_names(np.squeeze(X[:, i])))
     X_categorical = np.vstack(features)
 
-    return entropy_joint(X_categorical)#, estimator="MLE")
+    return entropy_joint(X_categorical)
 
 
 # https://arxiv.org/pdf/1612.00554.pdf
@@ -188,11 +188,13 @@ def informational_regularization_2(A, X_d, X_c, decision_function, n_bins=4):
     :param n_bins:
     :return:
     """
+    if not A:
+        return 0
+
     X_subset = X_d[:, A]
 
-    infosum = 0
-
-    normalizer = 0
+    infosum = list()
+    nonneg_offset = list()
 
     for i in range(X_c.shape[1]):
         model = clone(decision_function)
@@ -201,9 +203,11 @@ def informational_regularization_2(A, X_d, X_c, decision_function, n_bins=4):
 
         model.fit(X_subset, r)
 
+        # TODO: could be precalculated
         dichtomizer = MaxentropyMedianDichtomizationTransformer(n_bins)
         dichtomizer.fit(r.reshape(-1, 1))
 
+        # TODO: could be precalculated
         r_d = np.squeeze(dichtomizer.transform_ordered(r.reshape(-1, 1)))
         p_d = np.squeeze(dichtomizer.transform_ordered(model.predict(X_subset).reshape(-1, 1)))
 
@@ -217,9 +221,12 @@ def informational_regularization_2(A, X_d, X_c, decision_function, n_bins=4):
 
         c = binarizer.transform([1]*X_c.shape[0])
 
-        infosum += log_loss(a, b)
-        normalizer += log_loss(a, c)
+        _, counts = np.unique(r_d, return_counts=True)
 
-    return -infosum / normalizer
+        #infosum.append(log_loss(a, c) - log_loss(a, b))
+        infosum.append(log_loss(a, b))
+        nonneg_offset.append(log_loss(a, c))
+
+    return np.mean(infosum) / X_c.shape[1]# - np.mean(nonneg_offset)
 
 

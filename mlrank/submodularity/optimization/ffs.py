@@ -4,6 +4,7 @@ from sklearn.base import clone
 
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import accuracy_score
+from sklearn.model_selection import train_test_split
 
 from mlrank.synth.linear import LinearProblemGenerator
 from mlrank.preprocessing.dichtomizer import MaxentropyMedianDichtomizationTransformer, dichtomize_matrix
@@ -12,8 +13,10 @@ from mlrank.submodularity.functions.metrics_dataset import informational_regular
 
 
 class ForwardFeatureSelection(object):
-    def __init__(self, n_bins, lambda_):
+    def __init__(self, n_bins, lambda_): #n_holdouts, test_share
         self.lambda_ = lambda_
+        #self.n_holdouts = n_holdouts
+        #self.test_share = test_share
         self.n_bins = n_bins
 
     def select(self, X_d, X_c, y, n_features, decision_function, extra_loss=False):
@@ -35,6 +38,7 @@ class ForwardFeatureSelection(object):
                 if i in subset:
                     continue
 
+                # holdout validation
                 loss_mi = mutual_information_normalized(
                     features=X_d[:, subset + [i]],
                     target=y,

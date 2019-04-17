@@ -176,14 +176,13 @@ def informational_regularization_1(A, X_d, X_c, decision_function, n_bins=4):
     return -infosum / (entropy((1, 0, 0, 0), (1/4, 1/4, 1/4, 1/4)) * X_d.shape[0])
 
 
-def informational_regularization_2(A, X_d, X_c, decision_function, n_bins=4):
+def informational_regularization_2(A, X, decision_function, n_bins=4):
     """
     Returns -R(X_A , X)
     A -> X --> -R(X_A, X) -> 0
     R(X_A, X) := \sum_{f \in F} D_{KL}(h_a, f)
-    :param subset:
-    :param X_d:
-    :param X_c:
+    :param A: indices of subset features
+    :param X: continious data
     :param decision_function:
     :param n_bins:
     :return:
@@ -191,25 +190,21 @@ def informational_regularization_2(A, X_d, X_c, decision_function, n_bins=4):
     if not A:
         return 0
 
-    X_subset = X_d[:, A]
-
     infosum = list()
-    nonneg_offset = list()
 
-    for i in range(X_c.shape[1]):
+    for i in range(X.shape[1]):
         model = clone(decision_function)
 
-        r = X_c[:, i]
+        r = X[:, i]
 
-        model.fit(X_subset, r)
+        model.fit(X[:, A], r)
 
         # TODO: could be precalculated
         dichtomizer = MaxentropyMedianDichtomizationTransformer(n_bins)
         dichtomizer.fit(r.reshape(-1, 1))
 
-        # TODO: could be precalculated
         r_d = np.squeeze(dichtomizer.transform_ordered(r.reshape(-1, 1)))
-        p_d = np.squeeze(dichtomizer.transform_ordered(model.predict(X_subset).reshape(-1, 1)))
+        p_d = np.squeeze(dichtomizer.transform_ordered(model.predict(X[:, A]).reshape(-1, 1)))
 
         continious_labels = np.unique(r_d).tolist()
 
@@ -219,14 +214,8 @@ def informational_regularization_2(A, X_d, X_c, decision_function, n_bins=4):
         a = binarizer.transform(map_continious_names(r_d, continious_labels))
         b = binarizer.transform(map_continious_names(p_d, continious_labels))
 
-        c = binarizer.transform([1]*X_c.shape[0])
-
-        _, counts = np.unique(r_d, return_counts=True)
-
-        #infosum.append(log_loss(a, c) - log_loss(a, b))
         infosum.append(log_loss(a, b))
-        nonneg_offset.append(log_loss(a, c))
 
-    return np.mean(infosum) / X_c.shape[1]# - np.mean(nonneg_offset)
+    return np.mean(infosum) / X.shape[1]
 
 

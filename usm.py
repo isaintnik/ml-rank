@@ -19,9 +19,7 @@ if __name__ == '__main__':
 
     decision_function = LinearRegression()
 
-    for i in [8, 16]:
-        X_dicht = dichtomize_matrix(X, i)
-
+    for i in [4, 8, 16]:
         ums = MultilinearUSM(decision_function, i, .1)
 
-        print(ums.select(X_dicht, X, y))
+        print(ums.select(X, y))

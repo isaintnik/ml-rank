@@ -8,7 +8,7 @@ from sklearn.base import clone
 from mlrank.preprocessing.dichtomizer import MaxentropyMedianDichtomizationTransformer, map_continious_names
 
 
-def mutual_information(A, X_c, y, decision_function, n_bins=4):
+def mutual_information(A, X, y, decision_function, n_bins=4):
     if type_of_target(y) in ['binary', 'multiclass']:
         raise Exception('mutual information is calculated only for continious variables at the moment')
 
@@ -17,11 +17,10 @@ def mutual_information(A, X_c, y, decision_function, n_bins=4):
     dichtomizer.fit(y.reshape(-1, 1))
 
     df = clone(decision_function)
-    df.fit(X_c[:, A], y)
-    pred = df.predict(X_c[:, A])
+    df.fit(X[:, A], y)
+    pred = df.predict(X[:, A])
 
     pred = np.squeeze(dichtomizer.transform_ordered(pred.reshape(-1, 1)))
-    # TODO: could be precalculated
     target = np.squeeze(dichtomizer.transform_ordered(y.reshape(-1, 1)))
 
     labels = np.unique(target).tolist()

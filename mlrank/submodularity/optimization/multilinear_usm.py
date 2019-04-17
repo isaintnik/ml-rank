@@ -14,13 +14,14 @@ class MultilinearUSM(object):
     def __init__(self,
                  decision_function,
                  n_bins = 4,
-                 me_eps = .1):
+                 me_eps = .1,
+                 lambda_param = 1):
                  #algo_eps=.1):
         self.n_bins = n_bins
         self.decision_function = decision_function
 
         self.me_eps = me_eps
-        #self.algo_eps = algo_eps
+        self.lambda_param = lambda_param
 
         self.n_features = None
         self.metric = None
@@ -56,7 +57,7 @@ class MultilinearUSM(object):
         if not A:
             return 0
 
-        return self.metric(A) + self.penalty(A)#self.modular_penalty_approx(A)
+        return self.metric(A) + self.lambda_param * self.penalty(A)#self.modular_penalty_approx(A)
 
     # def lovasz_gradient(self, x, X, y):
     #     loss_function = partial(self.submodular_loss, X=X, y=y)
@@ -149,16 +150,15 @@ class MultilinearUSM(object):
     #         elif a[u] > 0:
     #             r[u] = 1
 
-    def select(self, X_d, X_c, y):
-        self.n_features = X_c.shape[1]
+    def select(self, X, y):
+        self.n_features = X.shape[1]
 
         self.metric = partial(
-            mutual_information, X_c=X_c, y=y, decision_function=self.decision_function, n_bins=self.n_bins
+            mutual_information, X=X, y=y, decision_function=self.decision_function, n_bins=self.n_bins
         )
 
         self.penalty = partial(informational_regularization_2,
-            X_d=X_d,
-            X_c=X_c,
+            X=X,
             decision_function=self.decision_function,
             n_bins=self.n_bins
         )
@@ -167,10 +167,10 @@ class MultilinearUSM(object):
         y = np.ones(self.n_features)
 
         for i in range(self.n_features):
-            x_i = copy(x)
+            x_i = np.copy(x)
             x_i[i] = 1
 
-            y_i = copy(y)
+            y_i = np.copy(y)
             y_i[i] = 0
 
             a_i = self.multiliear_extension(x_i) - self.multiliear_extension(x)

@@ -9,7 +9,7 @@ from sklearn.model_selection import train_test_split
 from mlrank.synth.linear import LinearProblemGenerator
 from mlrank.preprocessing.dichtomizer import MaxentropyMedianDichtomizationTransformer, dichtomize_matrix
 from mlrank.submodularity.functions.metrics_prediction import mutual_information_normalized
-from mlrank.submodularity.functions.metrics_dataset import informational_regularization_2
+from mlrank.submodularity.functions.metrics_dataset import informational_regularization_regression
 
 
 class ForwardFeatureSelection(object):
@@ -47,7 +47,7 @@ class ForwardFeatureSelection(object):
                 )
 
                 if extra_loss:
-                    subset_entropy = informational_regularization_2(
+                    subset_entropy = informational_regularization_regression(
                         subset + [i], X_d, X_c, decision_function=decision_function, n_bins=self.n_bins
                     )
                 else:

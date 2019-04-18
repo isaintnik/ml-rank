@@ -14,7 +14,7 @@ from mlrank.submodularity.functions.metrics_dataset import (
     joint_entropy_score_estimate,
     joint_entropy_score_exact,
     joint_entropy_score_ica_estimate,
-    informational_regularization_2)
+    informational_regularization_regression)
 
 joint_entropy_score = joint_entropy_score_estimate
 
@@ -26,7 +26,7 @@ def calc_loss(subset, X_d, X_c, y, decision_function, n_bins):
                X_d[:, subset], y,
                decision_function, n_bins=n_bins
            ) + \
-           informational_regularization_2(
+           informational_regularization_regression(
                subset, X_d, X_c, decision_function, n_bins=n_bins
            )
 

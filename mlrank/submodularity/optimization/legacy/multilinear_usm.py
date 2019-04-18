@@ -3,7 +3,7 @@ import numpy as np
 from sklearn.utils import shuffle
 
 from mlrank.submodularity.functions.metrics_prediction import mutual_information
-from mlrank.submodularity.functions.metrics_dataset import informational_regularization_2
+from mlrank.submodularity.functions.metrics_dataset import informational_regularization_regression
 
 from functools import partial
 
@@ -157,11 +157,11 @@ class MultilinearUSM(object):
             mutual_information, X=X, y=y, decision_function=self.decision_function, n_bins=self.n_bins
         )
 
-        self.penalty = partial(informational_regularization_2,
-            X=X,
-            decision_function=self.decision_function,
-            n_bins=self.n_bins
-        )
+        self.penalty = partial(informational_regularization_regression,
+                               X=X,
+                               decision_function=self.decision_function,
+                               n_bins=self.n_bins
+                               )
 
         x = np.zeros(self.n_features)
         y = np.ones(self.n_features)

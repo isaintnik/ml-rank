@@ -9,19 +9,20 @@ from mlrank.preprocessing.dichtomizer import MaxentropyMedianDichtomizationTrans
 
 
 def mutual_information(A, X, y, decision_function, n_bins=4):
-    if type_of_target(y) in ['binary', 'multiclass']:
-        raise Exception('mutual information is calculated only for continious variables at the moment')
-
     # TODO: could be precalculated
-    dichtomizer = MaxentropyMedianDichtomizationTransformer(n_bins)
-    dichtomizer.fit(y.reshape(-1, 1))
-
     df = clone(decision_function)
-    df.fit(X[:, A], y)
-    pred = df.predict(X[:, A])
+    df.fit(X[:, A], np.squeeze(y))
 
-    pred = np.squeeze(dichtomizer.transform_ordered(pred.reshape(-1, 1)))
-    target = np.squeeze(dichtomizer.transform_ordered(y.reshape(-1, 1)))
+    pred = np.squeeze(df.predict(X[:, A]))
+    target = np.squeeze(y)
+
+    if type_of_target(y) == 'continuous':
+        dichtomizer = MaxentropyMedianDichtomizationTransformer(n_bins)
+        dichtomizer.fit(y.reshape(-1, 1))
+
+        pred = np.squeeze(dichtomizer.transform_ordered(pred.reshape(-1, 1)))
+        target = np.squeeze(dichtomizer.transform_ordered(y.reshape(-1, 1)))
+
 
     labels = np.unique(target).tolist()
 

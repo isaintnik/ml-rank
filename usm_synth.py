@@ -7,7 +7,7 @@ from itertools import product
 
 from mlrank.synth.linear import LinearProblemGenerator
 from mlrank.preprocessing.dichtomizer import dichtomize_matrix
-from mlrank.submodularity.optimization.multilinear_usm import MultilinearUSM
+from mlrank.submodularity.optimization.usm import MultilinearUSM
 
 from sklearn.utils._joblib import Parallel, delayed
 from sklearn import clone
@@ -30,7 +30,14 @@ HYPERPARAMS = {
 
 
 def evaluate_model(X, y, decision_function, bins, lambda_param, gound):
-    ums = MultilinearUSM(decision_function, bins, me_eps=.1, lambda_param=lambda_param)
+    ums = MultilinearUSM(
+        decision_function,
+        bins,
+        me_eps=.1,
+        lambda_param=lambda_param,
+        type_of_problem='regression'
+    )
+
     result = ums.select(X, y)
     return {
         'bins': bins,

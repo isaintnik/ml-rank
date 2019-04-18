@@ -3,6 +3,8 @@ import numpy as np
 from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.utils import check_array, as_float_array
 
+from sklearn.utils.multiclass import type_of_target
+
 
 class MaxentropyMedianDichtomizationTransformer(BaseEstimator, TransformerMixin):
     def __init__(self, n_splits, verbose=False):
@@ -196,7 +198,10 @@ def dichtomize_matrix(X, n_bins):
     new_x = list()
     splitter = MaxentropyMedianDichtomizationTransformer(n_bins)
     for i in range(X.shape[1]):
-        new_x.append(splitter.fit(X[:, i].reshape(-1, 1)).transform_ordered(X[:, i].reshape(-1, 1)))
+        if type_of_target(X[:, i]) == 'continuous':
+            new_x.append(splitter.fit(X[:, i].reshape(-1, 1)).transform_ordered(X[:, i].reshape(-1, 1)))
+        else:
+            new_x.append(np.squeeze(X[:, i]))
 
     return np.hstack(new_x)
 

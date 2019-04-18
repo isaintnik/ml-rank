@@ -10,7 +10,7 @@ from mlrank.submodularity.functions.metrics_dataset import (
     joint_entropy_score_estimate,
     joint_entropy_score_exact,
     joint_entropy_score_ica_estimate,
-    informational_regularization_2)
+    informational_regularization_regression)
 
 joint_entropy_score = joint_entropy_score_ica_estimate
 
@@ -46,12 +46,12 @@ if __name__ == '__main__':
         print('-' * 100)
         print('-' * 100)
 
-        x_noise_reg = _lambda*informational_regularization_2(a, X, decision_function, n_bins=i)
-        x_real_reg = _lambda*informational_regularization_2(b, X, decision_function, n_bins=i)
-        x_full_reg = _lambda*informational_regularization_2(c, X, decision_function, n_bins=i)
-        x_rand_reg = _lambda*informational_regularization_2(d, X, decision_function, n_bins=i)
-        x_mc_reg = _lambda * informational_regularization_2(e, X, decision_function, n_bins=i)
-        x_pred_reg = _lambda * informational_regularization_2(f, X, decision_function, n_bins=i)
+        x_noise_reg = _lambda * informational_regularization_regression(a, X, decision_function, n_bins=i)
+        x_real_reg = _lambda * informational_regularization_regression(b, X, decision_function, n_bins=i)
+        x_full_reg = _lambda * informational_regularization_regression(c, X, decision_function, n_bins=i)
+        x_rand_reg = _lambda * informational_regularization_regression(d, X, decision_function, n_bins=i)
+        x_mc_reg = _lambda * informational_regularization_regression(e, X, decision_function, n_bins=i)
+        x_pred_reg = _lambda * informational_regularization_regression(f, X, decision_function, n_bins=i)
 
         print('noise', x_noise_info, x_noise_reg, ' delta: ', x_noise_info + x_noise_reg)
         print('ground', x_real_info, x_real_reg, ' delta: ', x_real_info + x_real_reg)

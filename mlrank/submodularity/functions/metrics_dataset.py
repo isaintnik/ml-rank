@@ -8,7 +8,7 @@ from sklearn.preprocessing import OneHotEncoder, LabelBinarizer
 from sklearn.decomposition import FastICA
 from scipy.stats import entropy
 
-from mlrank.preprocessing.dichtomizer import map_continious_names, MaxentropyMedianDichtomizationTransformer
+from mlrank.preprocessing.dichtomizer import map_continious_names, MaxentropyMedianDichtomizationTransformer, dichtomize_matrix
 
 from pyitlib.discrete_random_variable import entropy_joint
 
@@ -176,7 +176,7 @@ def informational_regularization_1(A, X_d, X_c, decision_function, n_bins=4):
     return -infosum / (entropy((1, 0, 0, 0), (1/4, 1/4, 1/4, 1/4)) * X_d.shape[0])
 
 
-def informational_regularization_2(A, X, decision_function, n_bins=4):
+def informational_regularization_regression(A, X, decision_function, n_bins=4):
     """
     Returns -R(X_A , X)
     A -> X --> -R(X_A, X) -> 0
@@ -213,6 +213,54 @@ def informational_regularization_2(A, X, decision_function, n_bins=4):
 
         a = binarizer.transform(map_continious_names(r_d, continious_labels))
         b = binarizer.transform(map_continious_names(p_d, continious_labels))
+
+        infosum.append(log_loss(a, b))
+
+    return np.mean(infosum) / X.shape[1]
+
+
+def informational_regularization_classification(A, X, decision_function, n_bins=4):
+    """
+    Returns -R(X_A , X)
+    A -> X --> -R(X_A, X) -> 0
+    R(X_A, X) := \sum_{f \in F} D_{KL}(h_a, f)
+    :param A: indices of subset features
+    :param X: continious data
+    :param decision_function:
+    :param n_bins:
+    :return:
+    """
+    if not A:
+        return 0
+
+    infosum = list()
+
+    for i in range(X.shape[1]):
+        model = clone(decision_function)
+
+        r = X[:, i]
+
+        if type_of_target(r) == 'continuous':
+            dichtomizer = MaxentropyMedianDichtomizationTransformer(n_bins)
+            dichtomizer.fit(r.reshape(-1, 1))
+
+            r_d = np.squeeze(dichtomizer.transform_ordered(r.reshape(-1, 1)))
+            r_d = map_continious_names(r_d)
+
+            model.fit(X[:, A], r_d)
+
+            p_d = model.predict(X[:, A])
+        else:
+            model.fit(X[:, A], r)
+
+            r_d = np.squeeze(r)
+            p_d = np.squeeze(model.predict(X[:, A]))
+
+        binarizer = LabelBinarizer()
+        binarizer.fit(np.unique(r_d))
+
+        a = binarizer.transform(r_d)
+        b = binarizer.transform(p_d)
 
         infosum.append(log_loss(a, b))
 

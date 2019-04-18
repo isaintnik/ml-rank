@@ -1,21 +1,22 @@
-import numpy as np
-from sklearn.linear_model import LinearRegression
-from sklearn.metrics import accuracy_score
-
 from itertools import product
 
-from mlrank.synth.linear import LinearProblemGenerator
-from mlrank.submodularity.optimization.multilinear_usm import MultilinearUSM
+import numpy as np
+import pandas as pd
+from sklearn.neural_network import MLPClassifier
 
+from sklearn.preprocessing import StandardScaler
+from sklearn.linear_model import LogisticRegression
 from sklearn.utils._joblib import Parallel, delayed
 from sklearn import clone
 from sklearn.externals import joblib
 
-from lightgbm import LGBMRegressor
+from mlrank.submodularity.optimization.usm import MultilinearUSM
+
+from lightgbm import LGBMClassifier
 
 # algorithm params
 ALGO_PARAMS = {
-    'decision_function': [LinearRegression(), LGBMRegressor()]
+    'decision_function': [LogisticRegression(multi_class='auto', solver='liblinear'), LGBMClassifier(), MLPClassifier(hidden_layer_sizes=(5,5,5))]
 }
 
 # hyperparameters
@@ -25,15 +26,32 @@ HYPERPARAMS = {
 }
 
 
-def evaluate_model(X, y, decision_function, bins, lambda_param, gound):
-    ums = MultilinearUSM(decision_function, bins, me_eps=.1, lambda_param=lambda_param)
+def evaluate_model(X, y, decision_function, bins, lambda_param):
+    ums = MultilinearUSM(
+        decision_function=decision_function, n_bins=bins, me_eps=.1,
+        lambda_param=lambda_param, type_of_problem='classification',
+        n_jobs=6
+    )
     result = ums.select(X, y)
     return {
         'bins': bins,
         'lambda': lambda_param,
-        'result': result,
-        'ground': gound
+        'result': result[0]
     }
+
+
+def load_data():
+    import os
+
+    #df = pd.read_csv('/Users/ppogorelov/Python/github/ml-rank/datasets/cancer/breast_cancer.csv')
+    df = pd.read_csv(os.path.dirname(os.path.abspath(__file__)) + '/datasets/cancer/breast_cancer.csv')
+
+    y = df.diagnosis.replace('M', 0).replace('B', 1).values
+    X = np.asarray(df.drop(['diagnosis', 'id', 'Unnamed: 32'], axis=1).values)
+
+    X = StandardScaler().fit_transform(X)
+
+    return X, y.reshape(-1, 1)
 
 
 if __name__ == '__main__':
@@ -41,12 +59,13 @@ if __name__ == '__main__':
 
     results = {}
 
+    X, y = load_data()
+
     for decision_function in ALGO_PARAMS['decision_function']:
         key = "{}".format(decision_function.__class__.__name__)
 
-        results[key] = Parallel(n_jobs=6)(
-            delayed(evaluate_model)(X, y, clone(decision_function), bins, lambda_param, gound)
-            for bins, lambda_param in product(HYPERPARAMS['bins'], HYPERPARAMS['lambda'])
-        )
+        results[key] = list()
 
-        joblib.dump(results, "./data/mlrank_stat.bin")
+        for bins, lambda_param in product(HYPERPARAMS['bins'], HYPERPARAMS['lambda']):
+            results[key].append(evaluate_model(X, y, clone(decision_function), bins, lambda_param))
+            joblib.dump(results, "./data/mlrank_stat_cancer.bin")

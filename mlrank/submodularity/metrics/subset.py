@@ -1,5 +1,5 @@
 import numpy as np
-from warnings import warn
+import warnings
 
 from sklearn.metrics import mutual_info_score, log_loss
 from sklearn.utils.multiclass import type_of_target
@@ -118,69 +118,11 @@ def joint_entropy_score_exact(subset, X):
     return h
 
 
-def informational_regularization_1(A, X_d, X_c, decision_function, n_bins=4):
-    """
-    Returns -R(X_A , X)
-    A -> X --> -R(X_A, X) -> 0
-    R(X_A, X) := \sum_{f \in F} D_{KL}(h_a, f)
-    :param subset:
-    :param X_d:
-    :param X_c:
-    :param decision_function:
-    :param n_bins:
-    :return:
-    """
-    X_subset = X_d[:, A]
-
-    infosum = 0
-
-    for i in range(X_c.shape[1]):
-        model = clone(decision_function)
-
-        r = X_c[:, i]
-
-        model.fit(X_subset, r)
-
-        dichtomizer = MaxentropyMedianDichtomizationTransformer(n_bins)
-        dichtomizer.fit(r.reshape(-1, 1))
-
-        r_d = dichtomizer.transform_ordered(r.reshape(-1, 1))
-        p_d = dichtomizer.transform_ordered(model.predict(X_subset).reshape(-1, 1))
-
-        print(r.min(), r.max())
-        print(np.unique(model.predict(X_subset)))
-
-        # предсказание часто уходит в граничные зоны
-
-        a, p_proba = np.unique(p_d, return_counts=True)
-        b, r_proba = np.unique(r_d, return_counts=True)
-
-        if a.shape[0] != b.shape[0]:
-            unque_elements = np.array([[b[i], r_proba[i]] for i in range(len(b)) if b[i] not in a])
-
-            a = np.append(a, np.squeeze(unque_elements[:, 0]))
-            p_proba = np.append(p_proba, np.array([0] * (r_proba.shape[0] - p_proba.shape[0])))
-
-            a = a.tolist()
-            b = b.tolist()
-
-            p_proba = p_proba.tolist()
-            r_proba = r_proba.tolist()
-
-            a, p_proba = list(zip(*sorted(zip(a, p_proba), key=lambda x: x[0])))
-            b, r_proba = list(zip(*sorted(zip(b, r_proba), key=lambda x: x[0])))
-
-        #print(p_proba, r_proba)
-        infosum += entropy(p_proba, r_proba)
-
-    return -infosum / (entropy((1, 0, 0, 0), (1/4, 1/4, 1/4, 1/4)) * X_d.shape[0])
-
-
 def informational_regularization_regression(A, X, decision_function, n_bins=4):
     """
-    Returns -R(X_A , X)
-    A -> X --> -R(X_A, X) -> 0
-    R(X_A, X) := \sum_{f \in F} D_{KL}(h_a, f)
+    Returns R(X_A , X)
+    A -> X --> R(X_A, X) -> 0
+    R(X_A, X) := \sum_{f \in F} H(h_A, f)
     :param A: indices of subset features
     :param X: continious data
     :param decision_function:
@@ -192,14 +134,18 @@ def informational_regularization_regression(A, X, decision_function, n_bins=4):
 
     infosum = list()
 
+    n_features = 0
     for i in range(X.shape[1]):
         model = clone(decision_function)
 
         r = X[:, i]
 
+        if type_of_target(r) != 'continuous':
+            warnings.warn(f"Binary features are not supported in continuous target. \n {i}-th feature in dataset is ignored")
+            continue
+
         model.fit(X[:, A], r)
 
-        # TODO: could be precalculated
         dichtomizer = MaxentropyMedianDichtomizationTransformer(n_bins)
         dichtomizer.fit(r.reshape(-1, 1))
 
@@ -215,15 +161,21 @@ def informational_regularization_regression(A, X, decision_function, n_bins=4):
         b = binarizer.transform(map_continious_names(p_d, continious_labels))
 
         infosum.append(log_loss(a, b))
+        #infosum.append(mutual_info_score(
+        #    map_continious_names(r_d, continious_labels),
+        #    map_continious_names(p_d, continious_labels)
+        #))
 
-    return np.mean(infosum) / X.shape[1]
+        n_features += 1
+
+    return np.mean(infosum) / n_features
 
 
 def informational_regularization_classification(A, X, decision_function, n_bins=4):
     """
-    Returns -R(X_A , X)
-    A -> X --> -R(X_A, X) -> 0
-    R(X_A, X) := \sum_{f \in F} D_{KL}(h_a, f)
+    Returns R(X_A , X)
+    A -> X --> R(X_A, X) -> 0
+    R(X_A, X) := \sum_{f \in F} H(h_A, f)
     :param A: indices of subset features
     :param X: continious data
     :param decision_function:
@@ -265,5 +217,3 @@ def informational_regularization_classification(A, X, decision_function, n_bins=
         infosum.append(log_loss(a, b))
 
     return np.mean(infosum) / X.shape[1]
-
-

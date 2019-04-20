@@ -4,8 +4,8 @@ from sklearn.utils import shuffle
 
 from sklearn.utils._joblib import Parallel, delayed
 
-from mlrank.submodularity.functions.metrics_prediction import mutual_information
-from mlrank.submodularity.functions.metrics_dataset import (
+from mlrank.submodularity.metrics.target import mutual_information
+from mlrank.submodularity.metrics.subset import (
     informational_regularization_regression,
     informational_regularization_classification
 )

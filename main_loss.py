@@ -5,8 +5,8 @@ from sklearn.metrics import accuracy_score
 
 from mlrank.synth.linear import LinearProblemGenerator
 from mlrank.preprocessing.dichtomizer import MaxentropyMedianDichtomizationTransformer, dichtomize_matrix
-from mlrank.submodularity.functions.metrics_prediction import mutual_information
-from mlrank.submodularity.functions.metrics_dataset import (
+from mlrank.submodularity.metrics.target import mutual_information
+from mlrank.submodularity.metrics.subset import (
     joint_entropy_score_estimate,
     joint_entropy_score_exact,
     joint_entropy_score_ica_estimate,

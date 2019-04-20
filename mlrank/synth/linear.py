@@ -4,7 +4,7 @@ from .features import FeaturesGenerator
 
 class LinearProblemGenerator(object):
     @staticmethod
-    def make_problem_normal_normal(n_samples: int, coefs: np.array, n_junk: int):
+    def make_normal_normal(n_samples: int, coefs: np.array, n_junk: int) -> dict:
         n_ground = coefs.shape[0]
 
         data = FeaturesGenerator.generate_normal_features(
@@ -28,10 +28,13 @@ class LinearProblemGenerator(object):
 
         X_junk, params_junk = data['features'], data['params']
 
-        return (y, X_ground, X_junk)
+        return {
+            'target': y,
+            'features': [X_ground, X_junk]
+        }
 
     @staticmethod
-    def make_normal_uniform(n_samples: int, coefs: np.array, n_junk: int):
+    def make_normal_uniform(n_samples: int, coefs: np.array, n_junk: int) -> dict:
         n_ground = coefs.shape[0]
 
         data = FeaturesGenerator.generate_normal_features(
@@ -43,7 +46,7 @@ class LinearProblemGenerator(object):
 
         X_ground, params_ground = data['features'], data['params']
 
-        y = (X_ground * coefs.reshape(1, -1)).sum(1) + np.random.normal(0, 2)
+        y = (X_ground * coefs.reshape(1, -1)).sum(1) + np.random.uniform(-10, 10)
 
         # add noisy features
 
@@ -56,11 +59,14 @@ class LinearProblemGenerator(object):
 
         X_junk, params_junk = data['features'], data['params']
 
-        return (y, X_ground, X_junk)
+        return {
+            'target': y,
+            'features': [X_ground, X_junk]
+        }
 
 
     @staticmethod
-    def make_mc_uniform(n_samples: int, coefs: np.array, n_junk: int, n_correlated: int):
+    def make_mc_uniform(n_samples: int, coefs: np.array, n_correlated: int, n_junk: int) -> dict:
         n_ground = coefs.shape[0]
 
         data = FeaturesGenerator.generate_normal_features(
@@ -95,4 +101,7 @@ class LinearProblemGenerator(object):
 
         X_junk, params_junk = data['features'], data['params']
 
-        return (y, X_ground, X_junk, X_corr)
+        return {
+            'target': y,
+            'features': [X_ground, X_corr, X_junk]
+        }

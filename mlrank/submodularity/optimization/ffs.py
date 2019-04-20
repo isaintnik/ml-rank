@@ -8,8 +8,8 @@ from sklearn.model_selection import train_test_split
 
 from mlrank.synth.linear import LinearProblemGenerator
 from mlrank.preprocessing.dichtomizer import MaxentropyMedianDichtomizationTransformer, dichtomize_matrix
-from mlrank.submodularity.functions.metrics_prediction import mutual_information_normalized
-from mlrank.submodularity.functions.metrics_dataset import informational_regularization_regression
+from mlrank.submodularity.metrics.target import mutual_information_normalized
+from mlrank.submodularity.metrics.subset import informational_regularization_regression
 
 
 class ForwardFeatureSelection(object):

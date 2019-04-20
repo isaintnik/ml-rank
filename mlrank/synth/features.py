@@ -1,6 +1,13 @@
 import numpy as np
 
 
+def shuffle_features(dataset):
+    n_features = dataset.shape[1]
+    feature_permutation = np.random.choice(n_features, n_features, replace=False)
+
+    return dataset[:, feature_permutation]
+
+
 class FeaturesGenerator(object):
     @staticmethod
     def generate_normal_features(
@@ -16,7 +23,7 @@ class FeaturesGenerator(object):
 
         return {
             'features': np.vstack(features).T,
-            'parameters': dict(zip(means.tolist(), variances.tolist()))
+            'params': dict(zip(means.tolist(), variances.tolist()))
         }
 
     @staticmethod
@@ -38,5 +45,5 @@ class FeaturesGenerator(object):
 
         return {
             'features': np.vstack(features).T,
-            'parameters': params
+            'params': params
         }

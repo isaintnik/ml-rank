@@ -16,7 +16,7 @@ joint_entropy_score = joint_entropy_score_ica_estimate
 
 if __name__ == '__main__':
     np.random.seed(42)
-    y, ground, noise, corr = LinearProblemGenerator.make_correlated_uniform(1000, 3, 5, 2)
+    y, ground, noise, corr = LinearProblemGenerator.make_mc_uniform(1000, 3, 5, 2)
 
     X = np.hstack([ground, noise, corr])
 

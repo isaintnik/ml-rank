@@ -59,7 +59,7 @@ if __name__ == '__main__':
             size, '_'.join([str(i) for i in config]), decision_function.__class__.__name__
         )
 
-        y, ground, noise, corr = LinearProblemGenerator.make_correlated_uniform(size, *config)#(500, 10, 10, 5)
+        y, ground, noise, corr = LinearProblemGenerator.make_mc_uniform(size, *config)#(500, 10, 10, 5)
 
         X = np.hstack([ground, noise, corr])
 

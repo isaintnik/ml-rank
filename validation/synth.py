@@ -19,11 +19,22 @@ from sklearn.neural_network import MLPRegressor
 from mlrank.synth.linear import LinearProblemGenerator
 from mlrank.synth.nonlinear import NonlinearProblemGenerator
 
+from functools import partial
+
 
 # algorithm params
 ALGO_PARAMS = {
     'size': [50, 100, 200, 500],
-    'problems': [(3, 5, 2), (3, 2, 5), (5, 5, 5)],
+    'problem': [
+        {'name': 'norm_norm', 'generator': partial(LinearProblemGenerator.make_normal_normal, coefs=np.array([.1, 5, 3]), n_junk=4)},
+        {'name': 'norm_uni', 'generator': partial(LinearProblemGenerator.make_normal_uniform, coefs=np.array([.1, 5, 3]), n_junk=4)},
+        {'name': 'mc', 'generator': partial(LinearProblemGenerator.make_mc_uniform, coefs=np.array([.1, 5, 3]), n_correlated=2, n_junk=4)},
+
+        {'name': 'lc_log', 'generator': partial(NonlinearProblemGenerator.make_nonlinear_linear_combination_problem, coefs=np.array([.1, 5, 3]), n_junk=2, func=np.log)},
+        {'name': 'r_log_eye', 'generator': partial(NonlinearProblemGenerator.make_nonlinear_relations_problem, coefs=np.array([.1, 5, 3]), n_junk=2, functions=[np.log, lambda x: x, np.log])},
+        {'name': 'xor', 'generator': partial(NonlinearProblemGenerator.make_xor_continuous_problem, n_ground=5, n_binary_xoring=2, n_junk=2)},
+    ],
+
     'decision_function': [
         LinearRegression(),
         MLPRegressor(hidden_layer_sizes=(5, 5)),
@@ -34,10 +45,11 @@ ALGO_PARAMS = {
                 subsample=0.7,
                 n_estimators=200,
                 verbose=-1,
-                subsample_freq=5, # ????
+                subsample_freq=5,
                 num_leaves=2**5,
                 silent=True
-            )]
+            )
+    ]
 }
 
 # hyperparameters
@@ -47,7 +59,7 @@ HYPERPARAMS = {
 }
 
 
-def evaluate_model(X, y, decision_function, bins, lambda_param, gound):
+def evaluate_model(X, y, decision_function, bins, lambda_param, mask):
     ums = MultilinearUSM(
         decision_function,
         bins,
@@ -61,7 +73,7 @@ def evaluate_model(X, y, decision_function, bins, lambda_param, gound):
         'bins': bins,
         'lambda': lambda_param,
         'result': result,
-        'ground': gound
+        'ground': mask
     }
 
 
@@ -70,26 +82,22 @@ if __name__ == '__main__':
 
     results = {}
 
-    for size, config, decision_function in product(
-            ALGO_PARAMS['size'], ALGO_PARAMS['config'], ALGO_PARAMS['decision_function']
+    for size, problem, decision_function in product(
+            ALGO_PARAMS['size'], ALGO_PARAMS['problem'], ALGO_PARAMS['decision_function']
     ):
         key = "{}_{}_{}".format(
-            size, '_'.join([str(i) for i in config]), decision_function.__class__.__name__
+            size, problem['name'], decision_function.__class__.__name__
         )
 
-        y, ground, noise, corr = LinearProblemGenerator.make_mc_uniform(size, *config)#(500, 10, 10, 5)
+        data = problem['generator'](size)
 
-        X = np.hstack([ground, noise, corr])
+        y = data['target']
+        X = np.hstack(data['features'])
+        mask = data['mask']
 
-        n_ground = ground.shape[1]
-        n_noise = noise.shape[1]
-        n_corr = corr.shape[1]
-
-        gound = ([1] * n_ground) + ([0] * n_noise) + ([2] * n_corr)
-
-        results[key] = Parallel(n_jobs=6)(
-            delayed(evaluate_model)(X, y, clone(decision_function), bins, lambda_param, gound)
+        results[key] = Parallel(n_jobs=14)(
+            delayed(evaluate_model)(X, y, clone(decision_function), bins, lambda_param, mask)
             for bins, lambda_param in product(HYPERPARAMS['bins'], HYPERPARAMS['lambda'])
         )
 
-        joblib.dump(results, "./data/mlrank_stat.bin")
+        joblib.dump(results, "../data/mlrank_stat_lin_nonlin.bin")

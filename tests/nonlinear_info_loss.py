@@ -2,6 +2,7 @@ import numpy as np
 from functools import partial
 
 from sklearn.linear_model import LinearRegression
+from sklearn.neural_network import MLPClassifier, MLPRegressor
 
 from mlrank.synth.nonlinear import NonlinearProblemGenerator
 from mlrank.submodularity.metrics.target import mutual_information
@@ -10,18 +11,15 @@ from mlrank.submodularity.metrics.subset import informational_regularization_reg
 problems = [
     {
         'name': 'xor',
-        'problem': NonlinearProblemGenerator.make_xor_continuous_problem(300, 4, 2, 4),
-        'config': [4+3, 4]
+        'problem': NonlinearProblemGenerator.make_xor_continuous_problem(300, 4, 3, 4)
     },
     {
         'name': 'lc_log',
-        'problem': NonlinearProblemGenerator.make_nonlinear_linear_combination_problem(300, np.array([0.2, 5, 9]), 5, np.log),
-        'config': [3, 5]
+        'problem': NonlinearProblemGenerator.make_nonlinear_linear_combination_problem(300, np.array([0.2, 5, 9]), 5, np.log)
     },
     {
         'name': 'r_log',
-        'problem': NonlinearProblemGenerator.make_nonlinear_relations_problem(300, np.array([0.2, 5, 9]), 5,  [np.log, lambda x: x]),
-        'config': [3, 5]
+        'problem': NonlinearProblemGenerator.make_nonlinear_relations_problem(1000, np.array([0.2, 5, 9]), 2,  [np.log, lambda x: x])
     }
 ]
 
@@ -43,9 +41,9 @@ if __name__ == '__main__':
 
         y = problem['problem']['target']
         X = np.hstack(problem['problem']['features'])
-        config = problem['config']
+        mask = np.array(problem['problem']['mask'])
 
-        decision_function = LinearRegression()
+        decision_function = LinearRegression()#MLPRegressor(hidden_layer_sizes=(3,2), activation='relu', solver='lbfgs')
 
         _lambda = 1
 
@@ -54,9 +52,9 @@ if __name__ == '__main__':
             print('dictomization: ', i)
             get_lv = partial(get_loss_values, X=X, y=y, decision_function=decision_function, n_bins=i)
 
-            a = list(range(config[0]))
-            b = list(range(config[0], X.shape[1]))
-            c = list(range(0, X.shape[1]))
+            a = np.where(mask)[0].tolist()
+            b = np.where(mask == 0)[0].tolist()
+            c = np.where((mask == 0) | (mask == 1))[0].tolist()
 
             a_vals = get_lv(a)
             b_vals = get_lv(b)

@@ -47,7 +47,10 @@ class MultilinearUSM(object):
         if not A:
             return 0
 
-        return self.metric(A) + self.lambda_param * self.penalty(A)#self.modular_penalty_approx(A)
+        if self.lambda_param != 0:
+            return self.metric(A) + self.lambda_param * self.penalty(A)#self.modular_penalty_approx(A)
+        else:
+            return self.metric(A)
 
     def multiliear_extension(self, x):
         def make_sample_from_dist(x):

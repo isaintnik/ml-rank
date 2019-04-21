@@ -30,7 +30,8 @@ class LinearProblemGenerator(object):
 
         return {
             'target': y,
-            'features': [X_ground, X_junk]
+            'features': [X_ground, X_junk],
+            'mask': [1] * X_ground.shape[1] + [0] * X_junk.shape[1]
         }
 
     @staticmethod
@@ -61,7 +62,8 @@ class LinearProblemGenerator(object):
 
         return {
             'target': y,
-            'features': [X_ground, X_junk]
+            'features': [X_ground, X_junk],
+            'mask': [1] * X_ground.shape[1] + [0] * X_junk.shape[1]
         }
 
 
@@ -103,5 +105,6 @@ class LinearProblemGenerator(object):
 
         return {
             'target': y,
-            'features': [X_ground, X_corr, X_junk]
+            'features': [X_ground, X_corr, X_junk],
+            'mask': [1] * X_ground.shape[1] + [1] * X_corr.shape[1] + [0] * X_junk.shape[1]
         }

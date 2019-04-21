@@ -11,17 +11,14 @@ problems = [
     {
         'name': 'multicollinear',
         'problem': LinearProblemGenerator.make_mc_uniform(300, np.array([0.2, 5, 9]), 5, 2),
-        'config': [3, 2, 5]
     },
     {
         'name': 'normal_junk_and_residuals',
         'problem': LinearProblemGenerator.make_normal_normal(300, np.array([0.2, 5, 9]), 5),
-        'config': [3, 5]
     },
     {
         'name': 'uniform_junk_and_residuals',
         'problem': LinearProblemGenerator.make_normal_uniform(300, np.array([0.2, 5, 9]), 5),
-        'config': [3, 5]
     },
 ]
 
@@ -44,7 +41,7 @@ if __name__ == '__main__':
 
         y = problem['problem']['target']
         X = np.hstack(problem['problem']['features'])
-        config = problem['config']
+        mask = np.array(problem['problem']['mask'])
 
         decision_function = LinearRegression()
 
@@ -56,9 +53,9 @@ if __name__ == '__main__':
 
             get_lv = partial(get_loss_values, X=X, y=y, decision_function=decision_function, n_bins=i)
 
-            a = list(range(config[0]))
-            b = list(range(config[0], X.shape[1]))
-            c = list(range(0, X.shape[1]))
+            a = np.where(mask)[0].tolist()
+            b = np.where(mask == 0)[0].tolist()
+            c = np.where((mask == 0) | (mask == 1))[0].tolist()
 
             a_vals = get_lv(a)
             b_vals = get_lv(b)

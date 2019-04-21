@@ -127,12 +127,12 @@ class DataLoader(object):
 #SEIZURES_PATH = os.path.dirname(os.path.abspath(__file__)) + '/datasets/seizures.csv'
 #LUNG_CANCER_PATH = os.path.dirname(os.path.abspath(__file__)) + '/datasets/lung-cancer.data'
 
-BREAST_CANCER_PATH = '../datasets/breast_cancer.csv'
-ARRHYTHMIA_PATH = '../datasets/arrhythmia.data'
-FOREST_FIRE_PATH = '../datasets/forestfires.csv'
-HEART_DESEASE_PATH = '../datasets/reprocessed.hungarian.data'
-SEIZURES_PATH = '../datasets/seizures.csv'
-LUNG_CANCER_PATH = '../datasets/lung-cancer.data'
+BREAST_CANCER_PATH = './datasets/breast_cancer.csv'
+ARRHYTHMIA_PATH = './datasets/arrhythmia.data'
+FOREST_FIRE_PATH = './datasets/forestfires.csv'
+HEART_DESEASE_PATH = './datasets/reprocessed.hungarian.data'
+SEIZURES_PATH = './datasets/seizures.csv'
+LUNG_CANCER_PATH = './datasets/lung-cancer.data'
 
 # algorithm params
 ALGO_PARAMS = {
@@ -184,10 +184,10 @@ HYPERPARAMS = {
 }
 
 
-def evaluate_model(X, y, decision_function, bins, lambda_param):
+def evaluate_model(X, y, decision_function, bins, lambda_param, problem):
     ums = MultilinearUSM(
         decision_function=decision_function, n_bins=bins, me_eps=.1,
-        lambda_param=lambda_param, type_of_problem='classification',
+        lambda_param=lambda_param, type_of_problem=problem,
         n_jobs=6
     )
     result = ums.select(X, y)
@@ -211,5 +211,8 @@ if __name__ == '__main__':
         X, y = dataset['data']
 
         for bins, lambda_param in product(HYPERPARAMS['bins'], HYPERPARAMS['lambda']):
-            results[key].append(evaluate_model(X, y, clone(decision_function[dataset['problem']]), bins, lambda_param))
+            results[key].append(evaluate_model(
+                X, y, clone(decision_function[dataset['problem']]), bins, lambda_param, dataset['problem']
+            ))
+
             joblib.dump(results, "./data/mlrank_realdata.bin")

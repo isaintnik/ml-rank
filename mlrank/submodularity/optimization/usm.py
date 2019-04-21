@@ -67,6 +67,10 @@ class MultilinearUSM(object):
             for i in range(int(1 / (self.me_eps ** 2)))
         )
 
+        #sampled_losses = list()
+        #for i in range(int(1 / (self.me_eps ** 2))):
+        #    sampled_losses.append(sample_submodular(self.submodular_loss))
+
         return np.mean(sampled_losses)
 
     def select(self, X, y):

@@ -1,5 +1,11 @@
 import numpy as np
 
+import warnings
+from sklearn.exceptions import ConvergenceWarning
+
+with warnings.catch_warnings():
+    warnings.filterwarnings("ignore", category=ConvergenceWarning)
+
 from itertools import product
 
 # submodular optimizer
@@ -100,4 +106,4 @@ if __name__ == '__main__':
             for bins, lambda_param in product(HYPERPARAMS['bins'], HYPERPARAMS['lambda'])
         )
 
-        joblib.dump(results, "../data/mlrank_stat_lin_nonlin.bin")
+        joblib.dump(results, "./data/mlrank_stat_lin_nonlin.bin")

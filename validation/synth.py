@@ -1,4 +1,5 @@
 import numpy as np
+import os
 
 import warnings
 from sklearn.exceptions import ConvergenceWarning
@@ -88,22 +89,28 @@ if __name__ == '__main__':
 
     results = {}
 
+    if os.path.isfile("./data/mlrank_stat_lin_nonlin.bin"):
+        result = joblib.load("./data/mlrank_stat_lin_nonlin.bin")
+
     for size, problem, decision_function in product(
             ALGO_PARAMS['size'], ALGO_PARAMS['problem'], ALGO_PARAMS['decision_function']
     ):
-        key = "{}_{}_{}".format(
-            size, problem['name'], decision_function.__class__.__name__
-        )
+        # //_-
+        if size > 50 and not (size == 100 and problem['name'] in ['mc', 'norm_norm', 'norm_uni']):
 
-        data = problem['generator'](size)
+            key = "{}_{}_{}".format(
+                size, problem['name'], decision_function.__class__.__name__
+            )
 
-        y = data['target']
-        X = np.hstack(data['features'])
-        mask = data['mask']
+            data = problem['generator'](size)
 
-        results[key] = Parallel(n_jobs=14)(
-            delayed(evaluate_model)(X, y, clone(decision_function), bins, lambda_param, mask)
-            for bins, lambda_param in product(HYPERPARAMS['bins'], HYPERPARAMS['lambda'])
-        )
+            y = data['target']
+            X = np.hstack(data['features'])
+            mask = data['mask']
 
-        joblib.dump(results, "./data/mlrank_stat_lin_nonlin.bin")
+            results[key] = Parallel(n_jobs=14)(
+                delayed(evaluate_model)(X, y, clone(decision_function), bins, lambda_param, mask)
+                for bins, lambda_param in product(HYPERPARAMS['bins'], HYPERPARAMS['lambda'])
+            )
+
+            joblib.dump(results, "./data/mlrank_stat_lin_nonlin.bin")

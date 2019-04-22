@@ -9,8 +9,8 @@ class NonlinearProblemGenerator(object):
         n_ground = coefs.shape[0]
 
         data = FeaturesGenerator.generate_normal_features(
-            mean_spread=(30, 60),
-            var_coef=10,
+            mean_spread=(30, 100),
+            var_coef=3,
             n_features=n_ground,
             n_samples=n_samples
         )
@@ -18,7 +18,6 @@ class NonlinearProblemGenerator(object):
         X_ground, params_ground = data['features'], data['params']
 
         y = func((X_ground * coefs.reshape(1, -1)).sum(1)) + np.random.normal(0, 1, n_samples)
-            # add noisy features
 
         if n_junk != 0:
             data = FeaturesGenerator.generate_normal_features(
@@ -48,8 +47,8 @@ class NonlinearProblemGenerator(object):
         #functions_to_features = np.random.random_integers(0, len(functions) - 1, n_ground)
 
         data = FeaturesGenerator.generate_normal_features(
-            mean_spread=(30, 60),
-            var_coef=2,
+            mean_spread=(30, 100),
+            var_coef=3,
             n_features=n_ground,
             n_samples=n_samples
         )

@@ -14,8 +14,8 @@ class USMBenchmark(object):
 
         self.seeds = [(42 + i) for i in range(self.n_cv)]
 
-    def evaluate(self, X, y, usm_features) -> np.ndarray:
-        features = np.array(usm_features)
+    def evaluate(self, X, y, features_param) -> np.ndarray:
+        features = np.array(features_param)
 
         X = X[:, np.array(features >= self.treshold)]
         y = np.squeeze(y)

@@ -4,61 +4,78 @@ from sklearn.base import clone
 
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import accuracy_score
+from sklearn.metrics import mutual_info_score
 from sklearn.model_selection import train_test_split
+from sklearn.utils.multiclass import type_of_target
 
+from mlrank.preprocessing.dichtomizer import MaxentropyMedianDichtomizationTransformer, map_continious_names
+from mlrank.submodularity.optimization.optimizer import SubmodularOptimizer
 from mlrank.synth.linear import LinearProblemGenerator
-from mlrank.preprocessing.dichtomizer import MaxentropyMedianDichtomizationTransformer, dichtomize_matrix
-from mlrank.submodularity.metrics.target import mutual_information_normalized
-from mlrank.submodularity.metrics.subset import informational_regularization_regression
 
 
-class ForwardFeatureSelection(object):
-    def __init__(self, n_bins, lambda_): #n_holdouts, test_share
-        self.lambda_ = lambda_
-        #self.n_holdouts = n_holdouts
-        #self.test_share = test_share
+class ForwardFeatureSelection(SubmodularOptimizer):
+    def __init__(self, decision_function, score_function, train_share:float, n_cv_ffs:int, n_features: int, n_bins: 4):
+        """
+        :param decision_function:
+        :param score_function:
+        :param n_cv:
+        :param train_share:
+        :param n_cv_ffs:
+        :param n_features:
+        :param n_bins: only used for continuous targets
+        """
+        super().__init__()
+
+        self.decision_function = clone(decision_function)
+        self.score_function = score_function
+        self.n_features = n_features
+        self.n_cv_ffs = n_cv_ffs
         self.n_bins = n_bins
+        self.train_share = train_share
 
-    def select(self, X_d, X_c, y, n_features, decision_function, extra_loss=False):
-        """
-        :param X_d: dichtomized features
-        :param X_c: continious features
-        :param y: regression target
-        :param n_features: number of features in optimal subset
-        :return: list of length n_features containing indices
-        """
+        self.seeds = [(42 + i) for i in range(self.n_cv_ffs)]
 
+    def select(self, X, y) -> list:
         subset = list()
 
-        while len(subset) != n_features:
-            max_score = -np.inf
-            max_index = -np.inf
+        for i in range(self.n_features):
+            feature_scores = list()
 
-            for i in range(X_d.shape[1]):
+            for i in range(X.shape[1]):
                 if i in subset:
+                    feature_scores.append(0)
                     continue
 
-                # holdout validation
-                loss_mi = mutual_information_normalized(
-                    features=X_d[:, subset + [i]],
-                    target=y,
-                    decision_function=decision_function,
-                    n_bins=4
-                )
+                X_s = X[:, subset + [i]]
+                y = np.squeeze(y)
 
-                if extra_loss:
-                    subset_entropy = informational_regularization_regression(
-                        subset + [i], X_d, X_c, decision_function=decision_function, n_bins=self.n_bins
+                scores = list()
+
+                for i in range(self.n_cv_ffs):
+                    X_train, X_test, y_train, y_test = train_test_split(
+                        X_s, y, random_state=self.seeds[i], shuffle=True, test_size = 1 - self.train_share
                     )
-                else:
-                    subset_entropy = 0
 
-                loss = loss_mi - self.lambda_ * subset_entropy
+                    model = clone(self.decision_function)
 
-                if loss > max_score:
-                    max_score = loss
-                    max_index = i
+                    model.fit(X_train, y_train)
 
-            subset.append(max_index)
+                    if type_of_target(y_train) == 'continuous':
+                        dichtomizer = MaxentropyMedianDichtomizationTransformer(self.n_bins)
+                        dichtomizer.fit(y_test.reshape(-1, 1))
+
+                        r_d = np.squeeze(dichtomizer.transform_ordered(y_test.reshape(-1, 1)))
+                        r_d = map_continious_names(r_d)
+
+                        p_d = model.predict(X_test)
+                        p_d = np.squeeze(dichtomizer.transform_ordered(p_d.reshape(-1, 1)))
+                        p_d = map_continious_names(p_d)
+
+                        scores.append(mutual_info_score(p_d, r_d))
+                    else:
+                        scores.append(mutual_info_score(model.predict(X_test), y_test))
+
+                feature_scores.append(np.mean(scores))
+            subset.append(np.atleast_1d(np.squeeze(np.argmax(feature_scores)))[0])
 
         return subset

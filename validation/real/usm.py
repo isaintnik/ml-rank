@@ -1,6 +1,7 @@
 import os
 import warnings
 from sklearn.exceptions import ConvergenceWarning
+from sklearn.metrics import accuracy_score
 
 with warnings.catch_warnings():
     warnings.filterwarnings("ignore", category=ConvergenceWarning)
@@ -14,6 +15,7 @@ from sklearn.externals import joblib
 from itertools import product
 
 from mlrank.submodularity.optimization.usm import MultilinearUSM
+from mlrank.benchmarks.holdout import HoldoutBenchmark
 
 # models
 from lightgbm import LGBMRegressor, LGBMClassifier
@@ -120,19 +122,19 @@ class DataLoader(object):
         return X, y.reshape(-1, 1)
 
 
-#BREAST_CANCER_PATH = os.path.dirname(os.path.abspath(__file__)) + '/datasets/breast_cancer.csv'
-#ARRHYTHMIA_PATH = os.path.dirname(os.path.abspath(__file__)) + '/datasets/arrhythmia.data'
-#FOREST_FIRE_PATH = os.path.dirname(os.path.abspath(__file__)) + '/datasets/forestfires.csv'
-#HEART_DESEASE_PATH = os.path.dirname(os.path.abspath(__file__)) + '/datasets/reprocessed.hungarian.data'
-#SEIZURES_PATH = os.path.dirname(os.path.abspath(__file__)) + '/datasets/seizures.csv'
-#LUNG_CANCER_PATH = os.path.dirname(os.path.abspath(__file__)) + '/datasets/lung-cancer.data'
+BREAST_CANCER_PATH = '../datasets/breast_cancer.csv'
+ARRHYTHMIA_PATH = '../datasets/arrhythmia.data'
+FOREST_FIRE_PATH = '../datasets/forestfires.csv'
+HEART_DESEASE_PATH = '../datasets/reprocessed.hungarian.data'
+SEIZURES_PATH = '../datasets/seizures.csv'
+LUNG_CANCER_PATH = '../datasets/lung-cancer.data'
 
-BREAST_CANCER_PATH = './datasets/breast_cancer.csv'
-ARRHYTHMIA_PATH = './datasets/arrhythmia.data'
-FOREST_FIRE_PATH = './datasets/forestfires.csv'
-HEART_DESEASE_PATH = './datasets/reprocessed.hungarian.data'
-SEIZURES_PATH = './datasets/seizures.csv'
-LUNG_CANCER_PATH = './datasets/lung-cancer.data'
+#BREAST_CANCER_PATH = './datasets/breast_cancer.csv'
+#ARRHYTHMIA_PATH = './datasets/arrhythmia.data'
+#FOREST_FIRE_PATH = './datasets/forestfires.csv'
+#HEART_DESEASE_PATH = './datasets/reprocessed.hungarian.data'
+#SEIZURES_PATH = './datasets/seizures.csv'
+#LUNG_CANCER_PATH = './datasets/lung-cancer.data'
 
 # algorithm params
 ALGO_PARAMS = {
@@ -204,15 +206,33 @@ if __name__ == '__main__':
     results = {}
 
     for dataset, decision_function in product(ALGO_PARAMS['dataset'], ALGO_PARAMS['decision_function']):
-        key = "{}, {}".format(dataset['name'], decision_function[dataset['problem']].__class__.__name__)
+        dfunc = decision_function[dataset['problem']]
+
+        key = "{}, {}".format(dataset['name'], dfunc.__class__.__name__)
 
         results[key] = list()
 
         X, y = dataset['data']
 
-        for bins, lambda_param in product(HYPERPARAMS['bins'], HYPERPARAMS['lambda']):
-            results[key].append(evaluate_model(
-                X, y, clone(decision_function[dataset['problem']]), bins, lambda_param, dataset['problem']
-            ))
+        n_cv = int(min(max(3200 / X.shape[0], 3), 100))
 
-            joblib.dump(results, "./data/mlrank_realdata.bin")
+        for bins, lambda_param in product(HYPERPARAMS['bins'], HYPERPARAMS['lambda']):
+            bench = HoldoutBenchmark(
+                MultilinearUSM(
+                    decision_function=dfunc, n_bins=bins, me_eps=.1,
+                    lambda_param=lambda_param, type_of_problem=dataset['problem'],
+                    n_jobs=6
+                ),
+                feature_selection_share=.5,
+                decision_function=dfunc,
+                n_holdouts=6
+            )
+
+            predictions = bench.benchmark(X, y)
+            results[key].append({
+                'bins': bins,
+                'lambda': lambda_param,
+                'result': predictions
+            })
+
+            joblib.dump(results, "./data/mlrank_realdata_usm.bin")

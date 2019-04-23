@@ -14,8 +14,10 @@ from functools import partial
 
 from copy import copy
 
+from mlrank.submodularity.optimization.optimizer import SubmodularOptimizer
 
-class MultilinearUSM(object):
+
+class MultilinearUSM(SubmodularOptimizer):
     def __init__(self,
                  decision_function,
                  n_bins = 4,
@@ -23,6 +25,17 @@ class MultilinearUSM(object):
                  lambda_param = 1,
                  type_of_problem = 'regression',
                  n_jobs=1):
+        """
+
+        :param decision_function:
+        :param n_bins:
+        :param me_eps:
+        :param lambda_param:
+        :param type_of_problem:
+        :param n_jobs:
+        """
+        super().__init__()
+
         self.n_bins = n_bins
         self.decision_function = decision_function
 

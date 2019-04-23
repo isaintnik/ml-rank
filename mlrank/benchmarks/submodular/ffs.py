@@ -16,10 +16,10 @@ class FFSBenchmark(object):
 
         self.seeds = [(42 + i) for i in range(self.n_cv)]
 
-    def evaluate(self, X, y, n_features) -> np.ndarray:
+    def evaluate(self, X, y, features_param) -> np.ndarray:
         subset = list()
 
-        for i in range(n_features):
+        for i in range(features_param):
             feature_scores = list()
 
             for i in range(X.shape[1]):
@@ -31,10 +31,6 @@ class FFSBenchmark(object):
                 y = np.squeeze(y)
 
                 scores = list()
-
-                model = clone(self.decision_function)
-                model.fit(X_s, y)
-                feature_scores.append(mutual_info_score(model.predict(X_s), y))
 
                 for i in range(self.n_cv_ffs):
                     X_train, X_test, y_train, y_test = train_test_split(

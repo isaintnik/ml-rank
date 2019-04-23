@@ -24,6 +24,7 @@ class MultilinearUSM(SubmodularOptimizer):
                  me_eps = .1,
                  lambda_param = 1,
                  type_of_problem = 'regression',
+                 threshold = .5,
                  n_jobs=1):
         """
 
@@ -38,6 +39,7 @@ class MultilinearUSM(SubmodularOptimizer):
 
         self.n_bins = n_bins
         self.decision_function = decision_function
+        self.threshold = threshold
 
         self.me_eps = me_eps
         self.lambda_param = lambda_param
@@ -45,6 +47,7 @@ class MultilinearUSM(SubmodularOptimizer):
         self.n_features = None
         self.metric = None
         self.penalty = None
+
 
         self.n_jobs=n_jobs
 
@@ -75,18 +78,18 @@ class MultilinearUSM(SubmodularOptimizer):
         def sample_submodular(loss_func):
             return loss_func(make_sample_from_dist(x))
 
-        sampled_losses = Parallel(self.n_jobs)(
-            delayed(partial(sample_submodular, loss_func=self.submodular_loss))()
-            for i in range(int(1 / (self.me_eps ** 2)))
-        )
+        #sampled_losses = Parallel(self.n_jobs)(
+        #    delayed(partial(sample_submodular, loss_func=self.submodular_loss))()
+        #    for i in range(int(1 / (self.me_eps ** 2)))
+        #)
 
-        #sampled_losses = list()
-        #for i in range(int(1 / (self.me_eps ** 2))):
-        #    sampled_losses.append(sample_submodular(self.submodular_loss))
+        sampled_losses = list()
+        for i in range(int(1 / (self.me_eps ** 2))):
+            sampled_losses.append(sample_submodular(self.submodular_loss))
 
         return np.mean(sampled_losses)
 
-    def select(self, X, y):
+    def select(self, X, y) -> list:
         self.n_features = X.shape[1]
 
         self.metric = partial(
@@ -124,4 +127,4 @@ class MultilinearUSM(SubmodularOptimizer):
             x = x + a
             y = y - b
 
-        return x, y
+        return np.where(x > self.threshold)[0].tolist()

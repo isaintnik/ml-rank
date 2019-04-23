@@ -1,10 +1,14 @@
 import os
+import sys
 import warnings
 from sklearn.exceptions import ConvergenceWarning
 from sklearn.metrics import accuracy_score
 
-with warnings.catch_warnings():
-    warnings.filterwarnings("ignore", category=ConvergenceWarning)
+from mlrank.submodularity.optimization.ffs import ForwardFeatureSelection
+
+if not sys.warnoptions:
+    warnings.simplefilter("ignore")
+    os.environ["PYTHONWARNINGS"] = "ignore" # Also affect subprocesses
 
 import numpy as np
 import pandas as pd
@@ -122,24 +126,24 @@ class DataLoader(object):
         return X, y.reshape(-1, 1)
 
 
-BREAST_CANCER_PATH = '../datasets/breast_cancer.csv'
-ARRHYTHMIA_PATH = '../datasets/arrhythmia.data'
-FOREST_FIRE_PATH = '../datasets/forestfires.csv'
-HEART_DESEASE_PATH = '../datasets/reprocessed.hungarian.data'
-SEIZURES_PATH = '../datasets/seizures.csv'
-LUNG_CANCER_PATH = '../datasets/lung-cancer.data'
+#BREAST_CANCER_PATH = '../datasets/breast_cancer.csv'
+#ARRHYTHMIA_PATH = '../datasets/arrhythmia.data'
+#FOREST_FIRE_PATH = '../datasets/forestfires.csv'
+#HEART_DESEASE_PATH = '../datasets/reprocessed.hungarian.data'
+#SEIZURES_PATH = '../datasets/seizures.csv'
+#LUNG_CANCER_PATH = '../datasets/lung-cancer.data'
 
-#BREAST_CANCER_PATH = './datasets/breast_cancer.csv'
-#ARRHYTHMIA_PATH = './datasets/arrhythmia.data'
-#FOREST_FIRE_PATH = './datasets/forestfires.csv'
-#HEART_DESEASE_PATH = './datasets/reprocessed.hungarian.data'
-#SEIZURES_PATH = './datasets/seizures.csv'
-#LUNG_CANCER_PATH = './datasets/lung-cancer.data'
+BREAST_CANCER_PATH = './datasets/breast_cancer.csv'
+ARRHYTHMIA_PATH = './datasets/arrhythmia.data'
+FOREST_FIRE_PATH = './datasets/forestfires.csv'
+HEART_DESEASE_PATH = './datasets/reprocessed.hungarian.data'
+SEIZURES_PATH = './datasets/seizures.csv'
+LUNG_CANCER_PATH = './datasets/lung-cancer.data'
 
 # algorithm params
 ALGO_PARAMS = {
     'dataset': [
-        {'problem': 'classification', 'name': "lung_cancer", 'data': DataLoader.load_data_lung_cancer(LUNG_CANCER_PATH)},
+        #{'problem': 'classification', 'name': "lung_cancer", 'data': DataLoader.load_data_lung_cancer(LUNG_CANCER_PATH)},
         {'problem': 'regression', 'name': "forest_fire", 'data': DataLoader.load_data_forest_fire(FOREST_FIRE_PATH)},
         {'problem': 'regression', 'name': "forest_fire_log", 'data': DataLoader.load_data_forest_fire_log(FOREST_FIRE_PATH)},
         {'problem': 'classification', 'name': "arrhythmia", 'data': DataLoader.load_data_arrhythmia(ARRHYTHMIA_PATH)},
@@ -151,38 +155,38 @@ ALGO_PARAMS = {
     'decision_function': [
         {'regression': Lasso(),
          'classification': LogisticRegression(multi_class='auto', solver='liblinear', penalty='l1', C=1)},
-        {'regression': MLPRegressor(hidden_layer_sizes=(5, 5), activation='relu'),
-         'classification': MLPClassifier(hidden_layer_sizes=(5, 5), activation='relu')},
-        {'regression': LGBMRegressor(
-                boosting_type='rf',
-                learning_rate=1e-2,
-                max_depth=5,
-                subsample=0.7,
-                n_estimators=200,
-                verbose=-1,
-                subsample_freq=5,
-                num_leaves=2**5,
-                silent=True
-            ),
-        'classification': LGBMClassifier(
-                boosting_type='rf',
-                learning_rate=1e-2,
-                max_depth=5,
-                subsample=0.7,
-                n_estimators=200,
-                verbose=-1,
-                subsample_freq=5,
-                num_leaves=2 ** 5,
-                silent=True
-            )
-        }
+        #{'regression': MLPRegressor(hidden_layer_sizes=(5, 5), activation='relu'),
+        # 'classification': MLPClassifier(hidden_layer_sizes=(5, 5), activation='relu')},
+        #{'regression': LGBMRegressor(
+        #        boosting_type='rf',
+        #        learning_rate=1e-2,
+        #        max_depth=5,
+        #        subsample=0.7,
+        #        n_estimators=200,
+        #        verbose=-1,
+        #        subsample_freq=5,
+        #        num_leaves=2**5,
+        #        silent=True
+        #    ),
+        #'classification': LGBMClassifier(
+        #        boosting_type='rf',
+        #        learning_rate=1e-2,
+        #        max_depth=5,
+        #        subsample=0.7,
+        #        n_estimators=200,
+        #        verbose=-1,
+        #        subsample_freq=5,
+        #        num_leaves=2 ** 5,
+        #        silent=True
+        #    )
+        #}
     ]
 }
 
 # hyperparameters
 HYPERPARAMS = {
     'bins': [4, 8, 16],
-    'lambda': [0, .3, .6, 1.]
+    'lambda': [.3]#[0, .3, .6, 1.]
 }
 
 
@@ -203,6 +207,8 @@ def evaluate_model(X, y, decision_function, bins, lambda_param, problem):
 if __name__ == '__main__':
     np.random.seed(42)
 
+    feature_selection_share=.5
+
     results = {}
 
     for dataset, decision_function in product(ALGO_PARAMS['dataset'], ALGO_PARAMS['decision_function']):
@@ -214,21 +220,26 @@ if __name__ == '__main__':
 
         X, y = dataset['data']
 
-        n_cv = int(min(max(3200 / X.shape[0], 3), 100))
+        n_cv = int(min(max(3200/X.shape[0], 3), 100))
 
         for bins, lambda_param in product(HYPERPARAMS['bins'], HYPERPARAMS['lambda']):
+            if bins >= X.shape[0] * feature_selection_share:
+                print(key, bins, 'very small dataset for such dichtomization.')
+                continue
+
             bench = HoldoutBenchmark(
                 MultilinearUSM(
                     decision_function=dfunc, n_bins=bins, me_eps=.1,
                     lambda_param=lambda_param, type_of_problem=dataset['problem'],
                     n_jobs=6
                 ),
-                feature_selection_share=.5,
+                feature_selection_share=feature_selection_share,
                 decision_function=dfunc,
-                n_holdouts=6
+                n_holdouts=n_cv
             )
 
             predictions = bench.benchmark(X, y)
+
             results[key].append({
                 'bins': bins,
                 'lambda': lambda_param,

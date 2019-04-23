@@ -20,7 +20,7 @@ class HoldoutBenchmark(object):
 
     def benchmark(self, X, y):
         predictions = list()
-
+        subsets = list()
         for i in range(self.n_holdouts):
             X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=int(1), random_state=42 + i)
             X_f, X_h, y_f, y_h = train_test_split(X_train, y_train, test_size=1-self.feature_selection_share, random_state=42 + i)
@@ -31,5 +31,9 @@ class HoldoutBenchmark(object):
             model.fit(X_h[:, subset], np.squeeze(y_h))
 
             predictions.append([model.predict(X_test[:, subset]), y_test])
+            subsets.append(subset)
 
-        return np.array(predictions)
+        return {
+            'predictions': np.array(predictions),
+            'subsets': subsets
+        }

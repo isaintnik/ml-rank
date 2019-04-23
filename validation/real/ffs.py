@@ -1,12 +1,14 @@
 import os
+import sys
 import warnings
 from sklearn.exceptions import ConvergenceWarning
 from sklearn.metrics import accuracy_score
 
 from mlrank.submodularity.optimization.ffs import ForwardFeatureSelection
 
-with warnings.catch_warnings():
-    warnings.filterwarnings("ignore", category=ConvergenceWarning)
+if not sys.warnoptions:
+    warnings.simplefilter("ignore")
+    os.environ["PYTHONWARNINGS"] = "ignore" # Also affect subprocesses
 
 import numpy as np
 import pandas as pd
@@ -205,6 +207,8 @@ def evaluate_model(X, y, decision_function, bins, lambda_param, problem):
 if __name__ == '__main__':
     np.random.seed(42)
 
+    feature_selection_share = .5
+
     results = {}
 
     for dataset, decision_function in product(ALGO_PARAMS['dataset'], ALGO_PARAMS['decision_function']):
@@ -219,6 +223,10 @@ if __name__ == '__main__':
         n_cv = int(min(max(3200/X.shape[0], 3), 100))
 
         for bins, lambda_param in product(HYPERPARAMS['bins'], HYPERPARAMS['lambda']):
+            if bins >= X.shape[0] * feature_selection_share:
+                print(key, bins, 'very small dataset for such dichtomization.')
+                continue
+
             for i in range(1, X.shape[1]):
                 bench = HoldoutBenchmark(
                     ForwardFeatureSelection(
@@ -229,7 +237,7 @@ if __name__ == '__main__':
                         n_features=i,
                         n_bins=4
                     ),
-                    feature_selection_share=.5,
+                    feature_selection_share=feature_selection_share,
                     decision_function=dfunc,
                     n_holdouts=n_cv
                 )

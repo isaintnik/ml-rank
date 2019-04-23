@@ -136,7 +136,11 @@ def informational_regularization_regression(A, X, decision_function, n_bins=4):
 
     n_features = 0
     for i in range(X.shape[1]):
+        dichtomizer = MaxentropyMedianDichtomizationTransformer(n_bins)
         model = clone(decision_function)
+
+        r_d = None
+        p_d = None
 
         r = X[:, i]
 
@@ -146,13 +150,27 @@ def informational_regularization_regression(A, X, decision_function, n_bins=4):
 
         model.fit(X[:, A], r)
 
-        dichtomizer = MaxentropyMedianDichtomizationTransformer(n_bins)
-        dichtomizer.fit(r.reshape(-1, 1))
+        try:
+            dichtomizer.fit(r.reshape(-1, 1))
 
-        r_d = np.squeeze(dichtomizer.transform_ordered(r.reshape(-1, 1)))
-        p_d = np.squeeze(dichtomizer.transform_ordered(model.predict(X[:, A]).reshape(-1, 1)))
+            pred = model.predict(X[:, A]).reshape(-1, 1)
 
-        continious_labels = np.unique(r_d).tolist()
+            r_d = np.squeeze(dichtomizer.transform_ordered(r.reshape(-1, 1)))
+            p_d = np.squeeze(dichtomizer.transform_ordered(pred))
+
+            continious_labels = np.unique(r_d).tolist()
+        except Exception as e:
+            # TODO: dichtomization is not possible to apply for such feature
+            # the issue is with feature degenerated values which unique values < n_bins
+
+            unique_vals, unique_counts = np.unique(r, return_counts=True)
+            max_occur = unique_vals[np.argmax(unique_counts)]
+
+            r_d = np.squeeze(r)
+            p_d = np.array([max_occur] * X.shape[0])
+
+            continious_labels = np.unique(r_d).tolist()
+
 
         binarizer = LabelBinarizer()
         binarizer.fit(np.unique(map_continious_names(r_d, continious_labels)))
@@ -203,10 +221,13 @@ def informational_regularization_classification(A, X, decision_function, n_bins=
 
             p_d = model.predict(X[:, A])
         else:
-            model.fit(X[:, A], r)
+            if np.unique(r).shape[0] > 1:
+                model.fit(X[:, A], r)
 
-            r_d = np.squeeze(r)
-            p_d = np.squeeze(model.predict(X[:, A]))
+                r_d = np.squeeze(r)
+                p_d = np.squeeze(model.predict(X[:, A]))
+            else:
+                r_d = p_d = np.squeeze(r)
 
         binarizer = LabelBinarizer()
         binarizer.fit(np.unique(r_d))

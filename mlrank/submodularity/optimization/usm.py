@@ -78,14 +78,14 @@ class MultilinearUSM(SubmodularOptimizer):
         def sample_submodular(loss_func):
             return loss_func(make_sample_from_dist(x))
 
-        #sampled_losses = Parallel(self.n_jobs)(
-        #    delayed(partial(sample_submodular, loss_func=self.submodular_loss))()
-        #    for i in range(int(1 / (self.me_eps ** 2)))
-        #)
+        sampled_losses = Parallel(self.n_jobs)(
+            delayed(partial(sample_submodular, loss_func=self.submodular_loss))()
+            for i in range(int(1 / (self.me_eps ** 2)))
+        )
 
-        sampled_losses = list()
-        for i in range(int(1 / (self.me_eps ** 2))):
-            sampled_losses.append(sample_submodular(self.submodular_loss))
+        #sampled_losses = list()
+        #for i in range(int(1 / (self.me_eps ** 2))):
+        #    sampled_losses.append(sample_submodular(self.submodular_loss))
 
         return np.mean(sampled_losses)
 

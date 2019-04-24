@@ -13,4 +13,4 @@ ENV PYTHONPATH="$PYTHONPATH:/"
 
 WORKDIR /mlrank
 
-CMD ["python3", "./validation/synth.py"]
+CMD ["python3", "./validation/real/usm.py"]

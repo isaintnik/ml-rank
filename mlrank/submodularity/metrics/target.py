@@ -26,7 +26,6 @@ def mutual_information(A, X, y, decision_function, n_bins=4, n_cv=1):
             pred = np.squeeze(dichtomizer.transform_ordered(pred.reshape(-1, 1)))
             target = np.squeeze(dichtomizer.transform_ordered(y.reshape(-1, 1)))
 
-
         labels = np.unique(target).tolist()
 
         scores.append(mutual_info_score(
@@ -34,7 +33,4 @@ def mutual_information(A, X, y, decision_function, n_bins=4, n_cv=1):
             map_continious_names(target, continious_labels=labels)
         ))
 
-    return mutual_info_score(
-        map_continious_names(pred, continious_labels=labels),
-        map_continious_names(target, continious_labels=labels)
-    )
+    return np.mean(scores)

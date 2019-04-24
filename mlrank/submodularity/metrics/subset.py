@@ -16,68 +16,10 @@ from itertools import product
 from functools import reduce
 
 
-
-# assumes that features are independently distributed
-# could be precomputed O(n^2) or realtime O(k*n)
-def mean_pairwise_score(subset, X, decision_function):
-    feature_scores = 0
-    for i in subset:
-        score = 0
-        for j in range(X.shape[1]):
-            if j == i:
-                continue
-            df = clone(decision_function)
-
-            score += mutual_info_score(df.fit_predict(X[:, j]), X[:, i])
-        feature_scores += score / (X.shape[1] - 1)
-    return feature_scores
-
-
-# should be increasing at each iterathing + unknown whether is this submodular or not
-# O(m*(n-m)!) ?
-def greedy_subset_score(subset, X, decision_function):
-    new_subset = list()
-    subset_score = 0
-
-    while len(new_subset) != len(subset):
-        max_subset_feature_score = -1
-        max_subset_feature_index = -1
-
-        for feature in subset:
-            if feature in new_subset:
-                continue
-
-            max_score = -1
-            max_index = -1
-
-            for i in range(X.shape[1]):
-                if i == feature or i in new_subset:
-                    continue
-
-                df = clone(decision_function)
-
-                encoder = OneHotEncoder(sparse=False)
-                x = encoder.fit_transform(X[:, new_subset + [feature]])
-                y = encoder.fit_transform(X[:, i])
-
-                score = mutual_info_score(df.fit_predict(x, y))
-
-                if score > max_score:
-                    max_score = score
-                    max_index = i
-
-            if max_subset_feature_score > max_score:
-                max_subset_feature_score = max_score
-                max_subset_feature_index = max_index
-
-        new_subset.append(max_subset_feature_index)
-        subset_score += max_subset_feature_score
-
-    return subset_score
-
-
 # H(X \ {subset} | {subset}) = H(X) - H({subset})
 # I(X, {subset}) = H(X) - H(X | {subset}) = H({subset}) - submodular (conditionally, except xor case)
+
+from mlrank.submodularity.metrics.shared import silent_log_loss
 
 # TODO: not sure how this algorithm works, find it out or rewrite it
 def joint_entropy_score_estimate(subset, X):
@@ -178,11 +120,7 @@ def informational_regularization_regression(A, X, decision_function, n_bins=4):
         a = binarizer.transform(map_continious_names(r_d, continious_labels))
         b = binarizer.transform(map_continious_names(p_d, continious_labels))
 
-        infosum.append(log_loss(a, b))
-        #infosum.append(mutual_info_score(
-        #    map_continious_names(r_d, continious_labels),
-        #    map_continious_names(p_d, continious_labels)
-        #))
+        infosum.append(silent_log_loss(a, b))
 
         n_features += 1
 
@@ -230,11 +168,12 @@ def informational_regularization_classification(A, X, decision_function, n_bins=
                 r_d = p_d = np.squeeze(r)
 
         binarizer = LabelBinarizer()
+
         binarizer.fit(np.unique(r_d))
 
         a = binarizer.transform(r_d)
         b = binarizer.transform(p_d)
 
-        infosum.append(log_loss(a, b))
+        infosum.append(silent_log_loss(a, b))
 
     return np.mean(infosum) / X.shape[1]

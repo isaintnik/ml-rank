@@ -7,7 +7,6 @@ def silent_log_loss(a, b):
         return log_loss(a, b)
     except:
         # in case that there is only one label in target
-        # TODO: have no idea how it should work
 
         a = np.ones_like(a)
         b = np.ones_like(b)

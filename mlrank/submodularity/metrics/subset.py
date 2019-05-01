@@ -60,71 +60,71 @@ def joint_entropy_score_exact(subset, X):
     return h
 
 
-def informational_regularization_regression(A, X, decision_function, n_bins=4):
-    """
-    Returns R(X_A , X)
-    A -> X --> R(X_A, X) -> 0
-    R(X_A, X) := \sum_{f \in F} H(h_A, f)
-    :param A: indices of subset features
-    :param X: continious data
-    :param decision_function:
-    :param n_bins:
-    :return:
-    """
-    if not A:
-        return 0
-
-    infosum = list()
-
-    n_features = 0
-    for i in range(X.shape[1]):
-        dichtomizer = MaxentropyMedianDichtomizationTransformer(n_bins)
-        model = clone(decision_function)
-
-        r_d = None
-        p_d = None
-
-        r = X[:, i]
-
-        if type_of_target(r) != 'continuous':
-            warnings.warn(f"Binary features are not supported in continuous target. \n {i}-th feature in dataset is ignored")
-            continue
-
-        model.fit(X[:, A], r)
-
-        try:
-            dichtomizer.fit(r.reshape(-1, 1))
-
-            pred = model.predict(X[:, A]).reshape(-1, 1)
-
-            r_d = np.squeeze(dichtomizer.transform_ordered(r.reshape(-1, 1)))
-            p_d = np.squeeze(dichtomizer.transform_ordered(pred))
-
-            continious_labels = np.unique(r_d).tolist()
-        except Exception as e:
-            # TODO: dichtomization is not possible to apply for such feature
-            # the issue is with feature degenerated values which unique values < n_bins
-
-            unique_vals, unique_counts = np.unique(r, return_counts=True)
-            max_occur = unique_vals[np.argmax(unique_counts)]
-
-            r_d = np.squeeze(r)
-            p_d = np.array([max_occur] * X.shape[0])
-
-            continious_labels = np.unique(r_d).tolist()
-
-
-        binarizer = LabelBinarizer()
-        binarizer.fit(np.unique(map_continious_names(r_d, continious_labels)))
-
-        a = binarizer.transform(map_continious_names(r_d, continious_labels))
-        b = binarizer.transform(map_continious_names(p_d, continious_labels))
-
-        infosum.append(silent_log_loss(a, b))
-
-        n_features += 1
-
-    return np.mean(infosum) / n_features
+# def informational_regularization_regression(A, X, decision_function, n_bins=4):
+#     """
+#     Returns R(X_A , X)
+#     A -> X --> R(X_A, X) -> 0
+#     R(X_A, X) := \sum_{f \in F} H(h_A, f)
+#     :param A: indices of subset features
+#     :param X: continious data
+#     :param decision_function:
+#     :param n_bins:
+#     :return:
+#     """
+#     if not A:
+#         return 0
+#
+#     infosum = list()
+#
+#     n_features = 0
+#     for i in range(X.shape[1]):
+#         dichtomizer = MaxentropyMedianDichtomizationTransformer(n_bins)
+#         model = clone(decision_function)
+#
+#         r_d = None
+#         p_d = None
+#
+#         r = X[:, i]
+#
+#         if type_of_target(r) != 'continuous':
+#             warnings.warn(f"Binary features are not supported in continuous target. \n {i}-th feature in dataset is ignored")
+#             continue
+#
+#         model.fit(X[:, A], r)
+#
+#         try:
+#             dichtomizer.fit(r.reshape(-1, 1))
+#
+#             pred = model.predict(X[:, A]).reshape(-1, 1)
+#
+#             r_d = np.squeeze(dichtomizer.transform_ordered(r.reshape(-1, 1)))
+#             p_d = np.squeeze(dichtomizer.transform_ordered(pred))
+#
+#             continious_labels = np.unique(r_d).tolist()
+#         except Exception as e:
+#             # TODO: dichtomization is not possible to apply for such feature
+#             # the issue is with feature degenerated values which unique values < n_bins
+#
+#             unique_vals, unique_counts = np.unique(r, return_counts=True)
+#             max_occur = unique_vals[np.argmax(unique_counts)]
+#
+#             r_d = np.squeeze(r)
+#             p_d = np.array([max_occur] * X.shape[0])
+#
+#             continious_labels = np.unique(r_d).tolist()
+#
+#
+#         binarizer = LabelBinarizer()
+#         binarizer.fit(np.unique(map_continious_names(r_d, continious_labels)))
+#
+#         a = binarizer.transform(map_continious_names(r_d, continious_labels))
+#         b = binarizer.transform(map_continious_names(p_d, continious_labels))
+#
+#         infosum.append(silent_log_loss(a, b))
+#
+#         n_features += 1
+#
+#     return np.mean(infosum) / n_features
 
 
 def informational_regularization_classification(A, X, decision_function, n_bins=4):
@@ -149,15 +149,25 @@ def informational_regularization_classification(A, X, decision_function, n_bins=
         r = X[:, i]
 
         if type_of_target(r) == 'continuous':
-            dichtomizer = MaxentropyMedianDichtomizationTransformer(n_bins)
-            dichtomizer.fit(r.reshape(-1, 1))
+            try:
+                dichtomizer = MaxentropyMedianDichtomizationTransformer(n_bins)
+                dichtomizer.fit(r.reshape(-1, 1))
 
-            r_d = np.squeeze(dichtomizer.transform_ordered(r.reshape(-1, 1)))
-            r_d = map_continious_names(r_d)
+                r_d = np.squeeze(dichtomizer.transform_ordered(r.reshape(-1, 1)))
+                r_d = map_continious_names(r_d)
 
-            model.fit(X[:, A], r_d)
+                model.fit(X[:, A], r_d)
 
-            p_d = model.predict(X[:, A])
+                p_d = model.predict(X[:, A])
+            except:
+                # TODO: dichtomization is not possible to apply for such feature
+                # the issue is with feature degenerated values which unique values < n_bins
+
+                unique_vals, unique_counts = np.unique(r, return_counts=True)
+                max_occur = unique_vals[np.argmax(unique_counts)]
+
+                r_d = np.squeeze(r)
+                p_d = np.array([max_occur] * X.shape[0])
         else:
             if np.unique(r).shape[0] > 1:
                 model.fit(X[:, A], r)

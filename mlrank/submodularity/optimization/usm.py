@@ -4,9 +4,9 @@ from sklearn.utils import shuffle
 
 from sklearn.utils._joblib import Parallel, delayed
 
-from mlrank.submodularity.metrics.target import mutual_information
+from mlrank.submodularity.metrics.target import mutual_information_classification
 from mlrank.submodularity.metrics.subset import (
-    informational_regularization_regression,
+    #informational_regularization_regression,
     informational_regularization_classification
 )
 
@@ -23,7 +23,6 @@ class MultilinearUSM(SubmodularOptimizer):
                  n_bins = 4,
                  me_eps = .1,
                  lambda_param = 1,
-                 type_of_problem = 'regression',
                  threshold = .5,
                  n_jobs=1):
         """
@@ -51,10 +50,7 @@ class MultilinearUSM(SubmodularOptimizer):
 
         self.n_jobs=n_jobs
 
-        if type_of_problem == 'classification':
-            self.penalty_raw = informational_regularization_classification
-        else:
-            self.penalty_raw = informational_regularization_regression
+        self.penalty_raw = informational_regularization_classification
 
     def submodular_loss(self, A):
         if hasattr(A, 'tolist'):
@@ -83,17 +79,13 @@ class MultilinearUSM(SubmodularOptimizer):
             for i in range(int(1 / (self.me_eps ** 2)))
         )
 
-        #sampled_losses = list()
-        #for i in range(int(1 / (self.me_eps ** 2))):
-        #    sampled_losses.append(sample_submodular(self.submodular_loss))
-
         return np.mean(sampled_losses)
 
     def select(self, X, y) -> list:
         self.n_features = X.shape[1]
 
         self.metric = partial(
-            mutual_information, X=X, y=y, decision_function=self.decision_function, n_bins=self.n_bins
+            mutual_information_classification, X=X, y=y, decision_function=self.decision_function, n_bins=self.n_bins
         )
 
         self.penalty = partial(self.penalty_raw, X=X, decision_function=self.decision_function, n_bins=self.n_bins)

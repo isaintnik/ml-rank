@@ -6,7 +6,7 @@ from sklearn.utils.multiclass import type_of_target
 
 from sklearn.externals.joblib import Parallel, delayed
 
-from mlrank.preprocessing.dichtomizer import MaxentropyMedianDichtomizationTransformer, map_continious_names
+from mlrank.preprocessing.dichtomizer import MaxentropyMedianDichtomizationTransformer, map_continuous_names
 from mlrank.submodularity.optimization.optimizer import SubmodularOptimizer
 
 

@@ -5,6 +5,7 @@ from sklearn.utils import shuffle
 
 from sklearn.utils._joblib import Parallel, delayed
 
+from mlrank.preprocessing.dichtomizer import dichtomize_vector, dichtomize_matrix
 from mlrank.submodularity.metrics.target import mutual_information_classification
 from mlrank.submodularity.metrics.subset import (
     #informational_regularization_regression,
@@ -53,6 +54,12 @@ class MultilinearUSM(SubmodularOptimizer):
 
         self.penalty_raw = informational_regularization_classification
 
+    def dichtomize_features(self, X):
+        return dichtomize_matrix(X, n_bins=self.n_bins, ordered=False)
+
+    def dichtomize_target(self, y):
+        return dichtomize_vector(y, n_bins=self.n_bins, ordered=False)
+
     def submodular_loss(self, A):
         if hasattr(A, 'tolist'):
             A = A.tolist()
@@ -83,13 +90,16 @@ class MultilinearUSM(SubmodularOptimizer):
         return np.mean(sampled_losses)
 
     def select(self, X, y) -> list:
+        X = self.dichtomize_features(X)
+        y = self.dichtomize_target(y)
+
         self.n_features = X.shape[1]
 
         self.metric = partial(
-            mutual_information_classification, X=X, y=y, decision_function=self.decision_function, n_bins=self.n_bins
+            mutual_information_classification, X=X, y=y, decision_function=self.decision_function
         )
 
-        self.penalty = partial(self.penalty_raw, X=X, decision_function=self.decision_function, n_bins=self.n_bins)
+        self.penalty = partial(self.penalty_raw, X=X, decision_function=self.decision_function)
 
         x = np.zeros(self.n_features)
         y = np.ones(self.n_features)

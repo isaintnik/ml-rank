@@ -6,7 +6,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.utils.multiclass import type_of_target
 from sklearn.base import clone
 
-from mlrank.preprocessing.dichtomizer import MaxentropyMedianDichtomizationTransformer, map_continious_names
+from mlrank.preprocessing.dichtomizer import MaxentropyMedianDichtomizationTransformer, map_continuous_names
 
 
 #def mutual_information(A, X, y, decision_function, n_bins=4, n_cv=1):
@@ -71,7 +71,22 @@ from mlrank.preprocessing.dichtomizer import MaxentropyMedianDichtomizationTrans
 #    return np.mean(scores)
 
 
-def mutual_information_classification(A, X, y, decision_function, n_bins=4):
+def mutual_information_classification(A, X, y, decision_function):
+    X = X[:, A]
+
+    target = np.squeeze(y)
+
+    if np.unique(y).shape[0] > 1:
+        df = clone(decision_function)
+        df.fit(X, target)
+
+        pred = np.squeeze(df.predict(X))
+
+        return mutual_info_score(pred, target)
+    return mutual_info_score(target, target)
+
+
+def mutual_information_classification_cv(A, X, y, decision_function, n_bins=4):
     X = X[:, A]
 
     df = clone(decision_function)
@@ -92,6 +107,6 @@ def mutual_information_classification(A, X, y, decision_function, n_bins=4):
     labels = np.unique(target).tolist()
 
     return mutual_info_score(
-        map_continious_names(pred, continious_labels=labels),
-        map_continious_names(target, continious_labels=labels)
+        map_continuous_names(pred, continuous_labels=labels),
+        map_continuous_names(target, continuous_labels=labels)
     )

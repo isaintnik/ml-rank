@@ -223,8 +223,6 @@ if __name__ == '__main__':
 
         X, y = dataset['data']
 
-        n_cv = int(min(max(3200/X.shape[0], 3), 100))
-
         for bins, lambda_param in product(HYPERPARAMS['bins'], HYPERPARAMS['lambda']):
             if bins >= X.shape[0] * feature_selection_share:
                 print(key, bins, 'very small dataset for such dichtomization.')
@@ -237,7 +235,8 @@ if __name__ == '__main__':
                 ),
                 feature_selection_share=feature_selection_share,
                 decision_function=dfunc,
-                n_holdouts=n_cv
+                n_holdouts=100,
+                n_jobs=1
             )
 
             predictions = bench.benchmark(X, y)

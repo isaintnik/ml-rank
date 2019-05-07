@@ -130,7 +130,7 @@ class MaxentropyMedianDichtomizationTransformer(BaseEstimator, TransformerMixin)
             result.append(np.argwhere([k[0] <= x and x < k[1] for k in self._splits[ix]]))
         return np.array(result).reshape(-1, 1)
 
-    def _convert_ordered(self, X, ix):
+    def _convert_ordered(self, X: np.array, ix):
         """
         Return ordered absolute values instead of onehot vector
         :param X:
@@ -150,7 +150,7 @@ class MaxentropyMedianDichtomizationTransformer(BaseEstimator, TransformerMixin)
             result.append(np.max([interval, self._min_value]))
         return np.array(result).reshape(X.shape[0], -1)
 
-    def fit(self, X):
+    def fit(self, X: np.array):
         X = self._check_X(X)
         self.n_samples, self.n_features = X.shape
 
@@ -194,27 +194,38 @@ class MaxentropyMedianDichtomizationTransformer(BaseEstimator, TransformerMixin)
         return np.hstack(X_converted)
 
 
-def dichtomize_matrix(X, n_bins):
-    new_x = list()
-    splitter = MaxentropyMedianDichtomizationTransformer(n_bins)
-    for i in range(X.shape[1]):
-        if type_of_target(X[:, i]) == 'continuous':
-            new_x.append(splitter.fit(X[:, i].reshape(-1, 1)).transform_ordered(X[:, i].reshape(-1, 1)))
+def map_continuous_names(y, continuous_labels = None):
+    if continuous_labels is None:
+        continuous_labels = np.unique(y).tolist()
+        continuous_labels = list(sorted(continuous_labels))
+
+    mapping = dict(zip(continuous_labels, range(len(continuous_labels))))
+    return list(map(lambda x: mapping[x], y.tolist()))
+
+
+def dichtomize_vector(y, n_bins, ordered=False):
+    y = np.squeeze(y)
+
+    if type_of_target(y) == 'continuous':
+        splitter = MaxentropyMedianDichtomizationTransformer(n_bins)
+        y_unique = np.unique(y)
+        if n_bins > y_unique.shape[0]:
+            splitter.fit(y.reshape(-1, 1))
         else:
-            new_x.append(np.squeeze(X[:, i]))
+            return np.array(map_continuous_names(y))
+
+        if ordered:
+            return np.squeeze(splitter.transform_ordered(y.reshape(-1, 1)))
+        else:
+            return np.squeeze(splitter.transform(y.reshape(-1, 1)))
+    else:
+        return y
+
+
+def dichtomize_matrix(X, n_bins, ordered=False):
+    new_x = list()
+    for i in range(X.shape[1]):
+        new_x.append(dichtomize_vector(X[:, i], n_bins=n_bins, ordered=ordered).reshape(-1, 1))
 
     return np.hstack(new_x)
 
-
-def dichtomize_vector(y, n_bins):
-    splitter = MaxentropyMedianDichtomizationTransformer(n_bins)
-    return splitter.fit(y.reshape(-1, 1)).transform_ordered(y.reshape(-1, 1))
-
-
-def map_continious_names(y, continious_labels = None):
-    if continious_labels is None:
-        continious_labels = np.unique(y).tolist()
-        continious_labels = list(sorted(continious_labels))
-
-    mapping = dict(zip(continious_labels, range(len(continious_labels))))
-    return list(map(lambda x: mapping[x], y.tolist()))

@@ -8,7 +8,7 @@ from sklearn.preprocessing import OneHotEncoder, LabelBinarizer
 from sklearn.decomposition import FastICA
 from scipy.stats import entropy
 
-from mlrank.preprocessing.dichtomizer import map_continious_names, MaxentropyMedianDichtomizationTransformer, dichtomize_matrix
+from mlrank.preprocessing.dichtomizer import map_continuous_names, MaxentropyMedianDichtomizationTransformer, dichtomize_matrix
 
 from pyitlib.discrete_random_variable import entropy_joint
 
@@ -25,7 +25,7 @@ from mlrank.submodularity.metrics.shared import silent_log_loss
 def joint_entropy_score_estimate(subset, X):
     features = list()
     for i in subset:
-        features.append(map_continious_names(np.squeeze(X[:, i])))
+        features.append(map_continuous_names(np.squeeze(X[:, i])))
     X_categorical = np.vstack(features)
 
     return entropy_joint(X_categorical)
@@ -127,7 +127,55 @@ def joint_entropy_score_exact(subset, X):
 #     return np.mean(infosum) / n_features
 
 
-def informational_regularization_classification(A, X, decision_function, n_bins=4):
+def informational_regularization_classification(A, X, decision_function):
+    """
+    Returns R(X_A , X)
+    A -> X --> R(X_A, X) -> 0
+    R(X_A, X) := \sum_{f \in F} H(h_A, f)
+    :param A: indices of subset features
+    :param X: continious data
+    :param decision_function:
+    :param n_bins:
+    :return:
+    """
+    if not A:
+        return 0
+
+    infosum = list()
+
+    for i in range(X.shape[1]):
+        model = clone(decision_function)
+
+        r = X[:, i]
+        if np.unique(r).shape[0] > 1:
+            model.fit(X[:, A], r)
+
+            r_d = np.squeeze(r)
+            p_d = np.squeeze(model.predict(X[:, A]))
+        else:
+            # constant model
+            r_d = p_d = np.squeeze(r)
+
+        try:
+            binarizer = LabelBinarizer()
+
+            binarizer.fit(np.unique(r_d))
+
+            a = binarizer.transform(r_d)
+            b = binarizer.transform(p_d)
+
+            infosum.append(silent_log_loss(a, b))
+        except Exception as e:
+            # sometimes a misterious excepption occurs
+
+            print(r_d)
+            print(np.unique(r_d))
+            raise e
+
+    return np.mean(infosum) / X.shape[1]
+
+
+def informational_regularization_classification_cv(A, X, decision_function, n_bins=4):
     """
     Returns R(X_A , X)
     A -> X --> R(X_A, X) -> 0
@@ -154,7 +202,7 @@ def informational_regularization_classification(A, X, decision_function, n_bins=
                 dichtomizer.fit(r.reshape(-1, 1))
 
                 r_d = np.squeeze(dichtomizer.transform_ordered(r.reshape(-1, 1)))
-                r_d = map_continious_names(r_d)
+                r_d = map_continuous_names(r_d)
 
                 model.fit(X[:, A], r_d)
 
@@ -175,6 +223,7 @@ def informational_regularization_classification(A, X, decision_function, n_bins=
                 r_d = np.squeeze(r)
                 p_d = np.squeeze(model.predict(X[:, A]))
             else:
+                # constant model
                 r_d = p_d = np.squeeze(r)
 
         try:

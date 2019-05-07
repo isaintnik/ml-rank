@@ -143,9 +143,9 @@ LUNG_CANCER_PATH = './datasets/lung-cancer.data'
 # algorithm params
 ALGO_PARAMS = {
     'dataset': [
-        {'problem': 'classification', 'name': "lung_cancer", 'data': DataLoader.load_data_lung_cancer(LUNG_CANCER_PATH)},
-        {'problem': 'regression', 'name': "forest_fire", 'data': DataLoader.load_data_forest_fire(FOREST_FIRE_PATH)},
-        {'problem': 'regression', 'name': "forest_fire_log", 'data': DataLoader.load_data_forest_fire_log(FOREST_FIRE_PATH)},
+        #{'problem': 'classification', 'name': "lung_cancer", 'data': DataLoader.load_data_lung_cancer(LUNG_CANCER_PATH)},
+        {'problem': 'classification', 'name': "forest_fire", 'data': DataLoader.load_data_forest_fire(FOREST_FIRE_PATH)},
+        {'problem': 'classification', 'name': "forest_fire_log", 'data': DataLoader.load_data_forest_fire_log(FOREST_FIRE_PATH)},
         {'problem': 'classification', 'name': "arrhythmia", 'data': DataLoader.load_data_arrhythmia(ARRHYTHMIA_PATH)},
         {'problem': 'classification', 'name': "breast_cancer", 'data': DataLoader.load_data_breast_cancer(BREAST_CANCER_PATH)},
         {'problem': 'classification', 'name': "heart_desease", 'data': DataLoader.load_data_heart_desease(HEART_DESEASE_PATH)},
@@ -193,10 +193,11 @@ HYPERPARAMS = {
 def evaluate_model(X, y, decision_function, bins, lambda_param, problem):
     ums = MultilinearUSM(
         decision_function=decision_function, n_bins=bins, me_eps=.1,
-        lambda_param=lambda_param, type_of_problem=problem,
-        n_jobs=6
+        lambda_param=lambda_param, n_jobs=6
     )
+
     result = ums.select(X, y)
+
     return {
         'bins': bins,
         'lambda': lambda_param,
@@ -232,8 +233,7 @@ if __name__ == '__main__':
             bench = HoldoutBenchmark(
                 MultilinearUSM(
                     decision_function=dfunc, n_bins=bins, me_eps=.1,
-                    lambda_param=lambda_param, type_of_problem=dataset['problem'],
-                    n_jobs=6
+                    lambda_param=lambda_param, n_jobs=2
                 ),
                 feature_selection_share=feature_selection_share,
                 decision_function=dfunc,

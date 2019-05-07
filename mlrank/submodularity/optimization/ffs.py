@@ -10,7 +10,6 @@ from sklearn.utils.multiclass import type_of_target
 
 from mlrank.preprocessing.dichtomizer import MaxentropyMedianDichtomizationTransformer, map_continious_names
 from mlrank.submodularity.optimization.optimizer import SubmodularOptimizer
-from mlrank.synth.linear import LinearProblemGenerator
 
 
 class ForwardFeatureSelection(SubmodularOptimizer):
@@ -36,6 +35,8 @@ class ForwardFeatureSelection(SubmodularOptimizer):
         self.seeds = [(42 + i) for i in range(self.n_cv_ffs)]
 
     def select(self, X, y) -> list:
+        df = clone(self.decision_function)
+
         subset = list()
 
         for i in range(self.n_features):
@@ -56,23 +57,20 @@ class ForwardFeatureSelection(SubmodularOptimizer):
                         X_s, y, random_state=self.seeds[i], shuffle=True, test_size = 1 - self.train_share
                     )
 
-                    model = clone(self.decision_function)
-
-                    model.fit(X_train, y_train)
+                    model = clone(df)
 
                     if type_of_target(y_train) == 'continuous':
                         dichtomizer = MaxentropyMedianDichtomizationTransformer(self.n_bins)
-                        dichtomizer.fit(y_test.reshape(-1, 1))
+                        dichtomizer.fit(y_train.reshape(-1, 1))
+                        train_target = dichtomizer.transform(y_train.reshape(-1, 1))
+                        model.fit(X_train, train_target)
 
-                        r_d = np.squeeze(dichtomizer.transform_ordered(y_test.reshape(-1, 1)))
-                        r_d = map_continious_names(r_d)
-
+                        r_d = np.squeeze(dichtomizer.transform(y_test.reshape(-1, 1)))
                         p_d = model.predict(X_test)
-                        p_d = np.squeeze(dichtomizer.transform_ordered(p_d.reshape(-1, 1)))
-                        p_d = map_continious_names(p_d)
 
                         scores.append(mutual_info_score(p_d, r_d))
                     else:
+                        model.fit(X_train, y_train)
                         scores.append(mutual_info_score(model.predict(X_test), y_test))
 
                 feature_scores.append(np.mean(scores))

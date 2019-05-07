@@ -19,7 +19,7 @@ from sklearn.externals import joblib
 from itertools import product
 
 from mlrank.submodularity.optimization.usm import MultilinearUSM
-from mlrank.benchmarks.holdout import HoldoutBenchmark
+from mlrank.benchmarks.holdout import HoldoutBenchmark, DichtomizedHoldoutBenchmark
 
 # models
 from lightgbm import LGBMRegressor, LGBMClassifier
@@ -154,54 +154,40 @@ ALGO_PARAMS = {
 
     'decision_function': [
         {'regression': Lasso(),
-         'classification': LogisticRegression(multi_class='auto', solver='liblinear', penalty='l1', C=1)},
-        {'regression': MLPRegressor(hidden_layer_sizes=(5, 5), activation='relu'),
-         'classification': MLPClassifier(hidden_layer_sizes=(5, 5), activation='relu')},
-        {'regression': LGBMRegressor(
-                boosting_type='rf',
-                learning_rate=1e-2,
-                max_depth=5,
-                subsample=0.7,
-                n_estimators=200,
-                verbose=-1,
-                subsample_freq=5,
-                num_leaves=2**5,
-                silent=True
-            ),
-        'classification': LGBMClassifier(
-                boosting_type='rf',
-                learning_rate=1e-2,
-                max_depth=5,
-                subsample=0.7,
-                n_estimators=200,
-                verbose=-1,
-                subsample_freq=5,
-                num_leaves=2 ** 5,
-                silent=True
-            )
-        }
+         'classification': LogisticRegression(multi_class='auto', solver='liblinear', penalty='l1', C=.1)},
+#        {'regression': MLPRegressor(hidden_layer_sizes=(5, 5), activation='relu'),
+#         'classification': MLPClassifier(hidden_layer_sizes=(5, 5), activation='relu')},
+#        {'regression': LGBMRegressor(
+#                boosting_type='rf',
+#                learning_rate=1e-2,
+#                max_depth=5,
+#                subsample=0.7,
+#                n_estimators=200,
+#                verbose=-1,
+#                subsample_freq=5,
+#                num_leaves=2**5,
+#                silent=True
+#            ),
+#        'classification': LGBMClassifier(
+#                boosting_type='rf',
+#                learning_rate=1e-2,
+#                max_depth=5,
+#                subsample=0.7,
+#                n_estimators=200,
+#                verbose=-1,
+#                subsample_freq=5,
+#                num_leaves=2 ** 5,
+#                silent=True
+#            )
+#        }
     ]
 }
 
 # hyperparameters
 HYPERPARAMS = {
-    'bins': [4, 8, 16],
-    'lambda': [0, .3, .6, 1.]
+    'bins': [2, 4, 8, 16],
+    #'lambda': [.1, .3, .6, 1.]
 }
-
-
-def evaluate_model(X, y, decision_function, bins, lambda_param, problem):
-    ums = MultilinearUSM(
-        decision_function=decision_function, n_bins=bins, me_eps=.1,
-        lambda_param=lambda_param, type_of_problem=problem,
-        n_jobs=6
-    )
-    result = ums.select(X, y)
-    return {
-        'bins': bins,
-        'lambda': lambda_param,
-        'result': result[0]
-    }
 
 
 if __name__ == '__main__':
@@ -212,7 +198,7 @@ if __name__ == '__main__':
     results = {}
 
     for dataset, decision_function in product(ALGO_PARAMS['dataset'], ALGO_PARAMS['decision_function']):
-        dfunc = decision_function[dataset['problem']]
+        dfunc = decision_function['classification']
 
         key = "{}, {}".format(dataset['name'], dfunc.__class__.__name__)
 
@@ -220,33 +206,34 @@ if __name__ == '__main__':
 
         X, y = dataset['data']
 
-        n_cv = int(min(max(3200/X.shape[0], 3), 100))
+        #n_cv = int(min(max(3200/X.shape[0], 3), 100))
 
-        for bins, lambda_param in product(HYPERPARAMS['bins'], HYPERPARAMS['lambda']):
+        for bins in HYPERPARAMS['bins']:
             if bins >= X.shape[0] * feature_selection_share:
                 print(key, bins, 'very small dataset for such dichtomization.')
                 continue
 
             for i in range(1, X.shape[1]):
-                bench = HoldoutBenchmark(
+                bench = DichtomizedHoldoutBenchmark(
                     ForwardFeatureSelection(
                         decision_function=dfunc,
                         score_function=accuracy_score,
                         train_share=.8,
                         n_cv_ffs=6,
                         n_features=i,
-                        n_bins=4
+                        n_bins=bins
                     ),
                     feature_selection_share=feature_selection_share,
                     decision_function=dfunc,
-                    n_holdouts=n_cv
+                    n_holdouts=100,
+                    n_jobs=8,
+                    n_bins=bins
                 )
 
                 predictions = bench.benchmark(X, y)
 
                 results[key].append({
                     'bins': bins,
-                    'lambda': lambda_param,
                     'result': predictions,
                     'n_features': i
                 })

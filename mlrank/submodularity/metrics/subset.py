@@ -177,13 +177,20 @@ def informational_regularization_classification(A, X, decision_function, n_bins=
             else:
                 r_d = p_d = np.squeeze(r)
 
-        binarizer = LabelBinarizer()
+        try:
+            binarizer = LabelBinarizer()
 
-        binarizer.fit(np.unique(r_d))
+            binarizer.fit(np.unique(r_d))
 
-        a = binarizer.transform(r_d)
-        b = binarizer.transform(p_d)
+            a = binarizer.transform(r_d)
+            b = binarizer.transform(p_d)
 
-        infosum.append(silent_log_loss(a, b))
+            infosum.append(silent_log_loss(a, b))
+        except Exception as e:
+            # sometimes a misterious excepption occurs
+
+            print(r_d)
+            print(np.unique(r_d))
+            raise e
 
     return np.mean(infosum) / X.shape[1]

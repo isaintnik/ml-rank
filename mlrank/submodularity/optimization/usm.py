@@ -1,4 +1,5 @@
 import numpy as np
+from sklearn import clone
 
 from sklearn.utils import shuffle
 
@@ -37,7 +38,7 @@ class MultilinearUSM(SubmodularOptimizer):
         super().__init__()
 
         self.n_bins = n_bins
-        self.decision_function = decision_function
+        self.decision_function = clone(decision_function)
         self.threshold = threshold
 
         self.me_eps = me_eps

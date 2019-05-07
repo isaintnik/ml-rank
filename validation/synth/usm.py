@@ -1,11 +1,11 @@
 import numpy as np
 import os
-
+import sys
 import warnings
-from sklearn.exceptions import ConvergenceWarning
 
-with warnings.catch_warnings():
-    warnings.filterwarnings("ignore", category=ConvergenceWarning)
+if not sys.warnoptions:
+    warnings.simplefilter("ignore")
+    os.environ["PYTHONWARNINGS"] = "ignore" # Also affect subprocesses
 
 from itertools import product
 
@@ -18,9 +18,9 @@ from sklearn.externals import joblib
 from sklearn import clone
 
 # models
-from lightgbm import LGBMRegressor
-from sklearn.linear_model import LinearRegression
-from sklearn.neural_network import MLPRegressor
+from lightgbm import LGBMRegressor, LGBMClassifier
+from sklearn.linear_model import LinearRegression, LogisticRegression
+from sklearn.neural_network import MLPRegressor, MLPClassifier
 
 # problems
 from mlrank.synth.linear import LinearProblemGenerator
@@ -43,9 +43,9 @@ ALGO_PARAMS = {
     ],
 
     'decision_function': [
-        LinearRegression(),
-        MLPRegressor(hidden_layer_sizes=(5, 5)),
-        LGBMRegressor(
+        LogisticRegression(multi_class='auto', solver='liblinear', penalty='l1', C=1),
+        MLPClassifier(hidden_layer_sizes=(5, 5), activation='relu'),
+        LGBMClassifier(
                 boosting_type='rf',
                 learning_rate=1e-2,
                 max_depth=5,
@@ -71,8 +71,8 @@ def evaluate_model(X, y, decision_function, bins, lambda_param, mask):
         decision_function,
         bins,
         me_eps=.1,
+        threshold=.5,
         lambda_param=lambda_param,
-        type_of_problem='regression'
     )
 
     result = ums.select(X, y)
@@ -89,28 +89,26 @@ if __name__ == '__main__':
 
     results = {}
 
-    if os.path.isfile("./data/mlrank_stat_lin_nonlin.bin"):
-        result = joblib.load("./data/mlrank_stat_lin_nonlin.bin")
+    #if os.path.isfile("./data/mlrank_stat_lin_nonlin.bin"):
+    #    result = joblib.load("./data/mlrank_stat_lin_nonlin.bin")
 
     for size, problem, decision_function in product(
             ALGO_PARAMS['size'], ALGO_PARAMS['problem'], ALGO_PARAMS['decision_function']
     ):
-        # //_-
-        if size > 50 and not (size == 100 and problem['name'] in ['mc', 'norm_norm', 'norm_uni']):
+        key = "{}_{}_{}".format(
+            size, problem['name'], decision_function.__class__.__name__
+        )
 
-            key = "{}_{}_{}".format(
-                size, problem['name'], decision_function.__class__.__name__
-            )
+        data = problem['generator'](size)
 
-            data = problem['generator'](size)
+        y = data['target']
+        X = np.hstack(data['features'])
+        mask = data['mask']
 
-            y = data['target']
-            X = np.hstack(data['features'])
-            mask = data['mask']
+        results[key] = Parallel(n_jobs=8)(
+            delayed(evaluate_model)(X, y, clone(decision_function), bins, lambda_param, mask)
+            for bins, lambda_param in product(HYPERPARAMS['bins'], HYPERPARAMS['lambda'])
+        )
 
-            results[key] = Parallel(n_jobs=14)(
-                delayed(evaluate_model)(X, y, clone(decision_function), bins, lambda_param, mask)
-                for bins, lambda_param in product(HYPERPARAMS['bins'], HYPERPARAMS['lambda'])
-            )
-
-            joblib.dump(results, "./data/mlrank_stat_lin_nonlin.bin")
+        joblib.dump(results, "./data/mlrank_stat_lin_nonlin.bin")
+        #joblib.dump(results, "/Users/ppogorelov/Python/github/ml-rank/data/mlrank_stat_lin_nonlin.bin")

@@ -21,7 +21,7 @@ class HoldoutBenchmark(object):
         self.n_holdouts = n_holdouts
         self.n_jobs = n_jobs
 
-    def predict_for_data(self, subset, X_complete, y_complete, X_train, X_test, y_train, y_test):
+    def predict_for_data(self, subset, X_complete, y_complete, X_train, y_train, X_test, y_test):
         model = clone(self.decision_function)
         model.fit(X_train[:, subset], np.squeeze(y_train))
 
@@ -85,6 +85,5 @@ class DichtomizedHoldoutBenchmark(HoldoutBenchmark):
             model.fit(X_train[:, subset], np.squeeze(y_train))
 
             pred = np.squeeze(model.predict(X_test[:, subset]))
-
 
         return pred, y_test

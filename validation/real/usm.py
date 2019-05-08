@@ -143,7 +143,7 @@ LUNG_CANCER_PATH = './datasets/lung-cancer.data'
 # algorithm params
 ALGO_PARAMS = {
     'dataset': [
-        #{'problem': 'classification', 'name': "lung_cancer", 'data': DataLoader.load_data_lung_cancer(LUNG_CANCER_PATH)},
+        {'problem': 'classification', 'name': "lung_cancer", 'data': DataLoader.load_data_lung_cancer(LUNG_CANCER_PATH)},
         {'problem': 'classification', 'name': "forest_fire", 'data': DataLoader.load_data_forest_fire(FOREST_FIRE_PATH)},
         {'problem': 'classification', 'name': "forest_fire_log", 'data': DataLoader.load_data_forest_fire_log(FOREST_FIRE_PATH)},
         {'problem': 'classification', 'name': "arrhythmia", 'data': DataLoader.load_data_arrhythmia(ARRHYTHMIA_PATH)},
@@ -186,7 +186,7 @@ ALGO_PARAMS = {
 # hyperparameters
 HYPERPARAMS = {
     'bins': [4, 8, 16],
-    'lambda': [.3]#[0, .3, .6, 1.]
+    'lambda': [.0, .3, .6, 1.]
 }
 
 
@@ -231,12 +231,12 @@ if __name__ == '__main__':
             bench = HoldoutBenchmark(
                 MultilinearUSM(
                     decision_function=dfunc, n_bins=bins, me_eps=.1,
-                    lambda_param=lambda_param, n_jobs=2
+                    lambda_param=lambda_param, n_jobs=1
                 ),
                 feature_selection_share=feature_selection_share,
                 decision_function=dfunc,
                 n_holdouts=100,
-                n_jobs=1
+                n_jobs=12
             )
 
             predictions = bench.benchmark(X, y)

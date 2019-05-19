@@ -127,7 +127,7 @@ def joint_entropy_score_exact(subset, X):
 #     return np.mean(infosum) / n_features
 
 
-def informational_regularization_classification(A, X, decision_function):
+def informational_regularization_classification(A, X_f, X_t, decision_function):
     """
     Returns R(X_A , X)
     A -> X --> R(X_A, X) -> 0
@@ -143,15 +143,15 @@ def informational_regularization_classification(A, X, decision_function):
 
     infosum = list()
 
-    for i in range(X.shape[1]):
+    for i in range(X_f.shape[1]):
         model = clone(decision_function)
 
-        r = X[:, i]
+        r = X_t[:, i]
         if np.unique(r).shape[0] > 1:
-            model.fit(X[:, A], r)
+            model.fit(X_f[:, A], r)
 
             r_d = np.squeeze(r)
-            p_d = np.squeeze(model.predict(X[:, A]))
+            p_d = np.squeeze(model.predict(X_f[:, A]))
         else:
             # constant model
             r_d = p_d = np.squeeze(r)
@@ -172,7 +172,7 @@ def informational_regularization_classification(A, X, decision_function):
             print(np.unique(r_d))
             raise e
 
-    return np.mean(infosum) / X.shape[1]
+    return np.mean(infosum) / X_f.shape[1]
 
 
 def informational_regularization_classification_cv(A, X, decision_function, n_bins=4):

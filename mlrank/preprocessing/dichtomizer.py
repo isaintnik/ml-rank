@@ -6,6 +6,11 @@ from sklearn.utils import check_array, as_float_array
 from sklearn.utils.multiclass import type_of_target
 
 
+class DichtomizationIssue(Exception):
+    def __init__(self, n_bins):
+        super().__init__(f"dichtomization issue at {n_bins} splits.")
+
+
 class MaxentropyMedianDichtomizationTransformer(BaseEstimator, TransformerMixin):
     def __init__(self, n_splits, verbose=False):
         self.n_splits = n_splits

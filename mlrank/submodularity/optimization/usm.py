@@ -5,18 +5,19 @@ from sklearn.utils import shuffle
 
 from sklearn.utils._joblib import Parallel, delayed
 
-from mlrank.preprocessing.dichtomizer import dichtomize_vector, dichtomize_matrix
+from mlrank.preprocessing.dichtomizer import (
+    dichtomize_vector,
+    dichtomize_matrix,
+    DichtomizationIssue
+)
 from mlrank.submodularity.metrics.target import mutual_information_classification
+from mlrank.submodularity.optimization.optimizer import SubmodularOptimizer
 from mlrank.submodularity.metrics.subset import (
     #informational_regularization_regression,
     informational_regularization_classification
 )
 
 from functools import partial
-
-from copy import copy
-
-from mlrank.submodularity.optimization.optimizer import SubmodularOptimizer
 
 
 class MultilinearUSM(SubmodularOptimizer):
@@ -54,8 +55,8 @@ class MultilinearUSM(SubmodularOptimizer):
 
         self.penalty_raw = informational_regularization_classification
 
-    def dichtomize_features(self, X):
-        return dichtomize_matrix(X, n_bins=self.n_bins, ordered=False)
+    def dichtomize_features(self, X, ordered):
+        return dichtomize_matrix(X, n_bins=self.n_bins, ordered=ordered)
 
     def dichtomize_target(self, y):
         return dichtomize_vector(y, n_bins=self.n_bins, ordered=False)
@@ -95,8 +96,12 @@ class MultilinearUSM(SubmodularOptimizer):
         return np.mean(sampled_losses)
 
     def select(self, X, y) -> list:
-        X = self.dichtomize_features(X)
-        y = self.dichtomize_target(y)
+        try:
+            X_t = self.dichtomize_features(X, ordered=False)
+            y = self.dichtomize_target(y)
+        except Exception as e:
+            print(e)
+            raise DichtomizationIssue(self.n_bins)
 
         self.n_features = X.shape[1]
 
@@ -104,7 +109,7 @@ class MultilinearUSM(SubmodularOptimizer):
             mutual_information_classification, X=X, y=y, decision_function=self.decision_function
         )
 
-        self.penalty = partial(self.penalty_raw, X=X, decision_function=self.decision_function)
+        self.penalty = partial(self.penalty_raw, X_f=X, X_t=X_t, decision_function=self.decision_function)
 
         x = np.zeros(self.n_features)
         y = np.ones(self.n_features)

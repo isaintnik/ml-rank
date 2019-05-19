@@ -6,7 +6,8 @@ from sklearn.utils.multiclass import type_of_target
 
 from sklearn.externals.joblib import Parallel, delayed
 
-from mlrank.preprocessing.dichtomizer import MaxentropyMedianDichtomizationTransformer, map_continuous_names
+from mlrank.preprocessing.dichtomizer import MaxentropyMedianDichtomizationTransformer, map_continuous_names, \
+    DichtomizationIssue
 from mlrank.submodularity.optimization.optimizer import SubmodularOptimizer
 
 
@@ -34,15 +35,20 @@ class HoldoutBenchmark(object):
         return X_complete, y_complete, X_h, y_h, X_f, y_f, X_test, y_test
 
     def evaluate(self, X, y, seed):
-        X_complete, y_complete, X_h, y_h, X_f, y_f, X_test, y_test = self.split_dataset(X, y, seed)
-        subset = self.optimizer.select(X_f, y_f)
+        try:
+            X_complete, y_complete, X_h, y_h, X_f, y_f, X_test, y_test = self.split_dataset(X, y, seed)
+            subset = self.optimizer.select(X_f, y_f)
 
-        y_pred, y_test = self.predict_for_data(subset, X_complete, y_complete, X_h, y_h, X_test, y_test)
-        return {
-            'target': np.squeeze(y_test),
-            'pred': y_pred,
-            'subset': subset
-        }
+            y_pred, y_test = self.predict_for_data(subset, X_complete, y_complete, X_h, y_h, X_test, y_test)
+
+            return {
+                'target': np.squeeze(y_test),
+                'pred': y_pred,
+                'subset': subset
+            }
+        except DichtomizationIssue as e:
+            print(e)
+            return dict()
 
     def benchmark(self, X, y):
         results = Parallel(n_jobs=self.n_jobs)(

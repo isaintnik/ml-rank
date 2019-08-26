@@ -18,8 +18,14 @@ def mutual_information_regularized_score(A, X_f, X_t, y, decision_function, _lam
     if not A:
         return 0
 
-    return mutual_information_classification(A=A, X=X_f, y=y, decision_function=decision_function) - \
-        _lambda * informational_regularization_classification(A=A, X_f=X_f, X_t=X_t, decision_function=decision_function)
+    a = mutual_information_classification(A=A, X=X_f, y=y, decision_function=decision_function)
+    if _lambda > 0.:
+        b = float(_lambda) * informational_regularization_classification(A=A, X_f=X_f, X_t=X_t,
+                                                                         decision_function=decision_function)
+    else:
+        b = 0
+
+    return a - b
 
 
 def mutual_information_regularized_score_penalized(A, X_f, X_t, y, decision_function, _lambda, _gamma) -> float:
@@ -37,9 +43,15 @@ def mutual_information_regularized_score_penalized(A, X_f, X_t, y, decision_func
     if not A:
         return 0
 
-    return mutual_information_classification(A=A, X=X_f, y=y, decision_function=decision_function) - \
-        float(_lambda) * informational_regularization_classification(A=A, X_f=X_f, X_t=X_t, decision_function=decision_function) - \
-        float(_gamma) * len(A) / X_f.shape[1]
+    a = mutual_information_classification(A=A, X=X_f, y=y, decision_function=decision_function)
+    if _lambda > 0.:
+        b = float(_lambda) * informational_regularization_classification(A=A, X_f=X_f, X_t=X_t, decision_function=decision_function)
+    else:
+        b = 0
+
+    c = float(_gamma) * float(len(A)) / X_f.shape[1]
+
+    return a - b - c
 
 
 def mutual_info_bic():

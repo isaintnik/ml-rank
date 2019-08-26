@@ -4,8 +4,9 @@ import warnings
 from functools import partial
 
 from sklearn.exceptions import ConvergenceWarning
-from sklearn.metrics import accuracy_score
+from sklearn.metrics import accuracy_score, mutual_info_score
 
+from mlrank.preprocessing.dichtomizer import dichtomize_vector
 from mlrank.submodular.metrics import mutual_information_regularized_score_penalized
 
 if not sys.warnoptions:
@@ -17,6 +18,7 @@ import pandas as pd
 
 from sklearn import clone
 from sklearn.externals import joblib
+from sklearn.utils.multiclass import type_of_target
 
 from itertools import product
 
@@ -100,8 +102,10 @@ class DataLoader(object):
 
         valid_columns = df.columns[~(df.isna().sum(axis=0).sort_values(ascending=False) > 0).sort_index()]
 
-        X = df.loc[:, valid_columns].loc[:, df.columns[:-1]].values
-        y = df.loc[:, valid_columns].loc[:, df.columns[-1]].values
+        X = df.loc[:, valid_columns].loc[:, valid_columns[:-1]].values
+        y = df.loc[:, valid_columns].loc[:, valid_columns[-1]].values
+
+        print(np.sum(np.isnan(X)))
 
         X, y = shuffle(X, y)
 
@@ -124,10 +128,11 @@ class DataLoader(object):
     def load_data_seizures(path):
         df = pd.read_csv(path)
 
-        X = df[list(set(df.columns).difference(['y']))].values
+        X = df[sorted(list(set(df.columns).difference(['y'])))].values
         y = df['y'].values
 
-        X, y = shuffle(X, y)
+        # skipping column with string content
+        X, y = shuffle(X[:, 1:], y)
 
         return X, y.reshape(-1, 1)
 
@@ -149,13 +154,13 @@ LUNG_CANCER_PATH = './datasets/lung-cancer.data'
 # algorithm params
 ALGO_PARAMS = {
     'dataset': [
-        #{'problem': 'classification', 'name': "lung_cancer", 'data': DataLoader.load_data_lung_cancer(LUNG_CANCER_PATH)},
-        {'problem': 'classification', 'name': "forest_fire", 'data': DataLoader.load_data_forest_fire(FOREST_FIRE_PATH)},
-        {'problem': 'classification', 'name': "forest_fire_log", 'data': DataLoader.load_data_forest_fire_log(FOREST_FIRE_PATH)},
-        {'problem': 'classification', 'name': "arrhythmia", 'data': DataLoader.load_data_arrhythmia(ARRHYTHMIA_PATH)},
+        {'problem': 'classification', 'name': "lung_cancer", 'data': DataLoader.load_data_lung_cancer(LUNG_CANCER_PATH)},
+        #{'problem': 'classification', 'name': "forest_fire", 'data': DataLoader.load_data_forest_fire(FOREST_FIRE_PATH)},
+        #{'problem': 'classification', 'name': "forest_fire_log", 'data': DataLoader.load_data_forest_fire_log(FOREST_FIRE_PATH)},
+        #{'problem': 'classification', 'name': "arrhythmia", 'data': DataLoader.load_data_arrhythmia(ARRHYTHMIA_PATH)},
         {'problem': 'classification', 'name': "breast_cancer", 'data': DataLoader.load_data_breast_cancer(BREAST_CANCER_PATH)},
         {'problem': 'classification', 'name': "heart_desease", 'data': DataLoader.load_data_heart_desease(HEART_DESEASE_PATH)},
-        {'problem': 'classification', 'name': "seizures", 'data': DataLoader.load_data_seizures(SEIZURES_PATH)} # pretty heavy
+        #{'problem': 'classification', 'name': "seizures", 'data': DataLoader.load_data_seizures(SEIZURES_PATH)} # pretty heavy
     ],
 
     'decision_function': [
@@ -210,16 +215,32 @@ if __name__ == '__main__':
 
         key = "{}, {}".format(dataset['name'], dfunc.__class__.__name__)
 
+        print('>>', key)
+
         results[key] = list()
 
         X, y = dataset['data']
 
-        for bins, lambda_param in product(HYPERPARAMS['bins'], HYPERPARAMS['lambda']):
+        prev_lambda_param = None
+
+        for lambda_param, bins in product(HYPERPARAMS['lambda'], HYPERPARAMS['bins']):
+            print(bins, lambda_param)
             if bins >= X.shape[0] * feature_selection_share:
                 print(key, bins, 'very small dataset for such dichtomization.')
                 continue
 
+            if prev_lambda_param == lambda_param and type_of_target(y) != 'continuous':
+                print('skipping dichtomization.')
+                continue
+
+            prev_lambda_param = lambda_param
+
             score_function = partial(mutual_information_regularized_score_penalized, _lambda=lambda_param, _gamma=0.1)
+
+            #y = dichtomize_vector(y, n_bins=2, ordered=False)
+            #dfunc.fit(X, y)
+            #yy = dfunc.predict(X)
+            #print(mutual_info_score(dfunc.predict(X), y))
 
             bench = DichtomizedHoldoutBenchmark(
                 MultilinearUSMExtended(
@@ -229,7 +250,7 @@ if __name__ == '__main__':
                 decision_function=dfunc,
                 n_holdouts=100,
                 n_bins=bins,
-                n_jobs=1
+                n_jobs=10
             )
 
             predictions = bench.benchmark(X, y)
@@ -240,4 +261,4 @@ if __name__ == '__main__':
                 'result': predictions
             })
 
-            joblib.dump(results, "./data/mlrank_realdata_usm.bin")
+            #joblib.dump(results, "./data/mlrank_realdata_usm.bin")

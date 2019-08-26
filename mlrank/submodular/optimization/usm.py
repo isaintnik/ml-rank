@@ -2,22 +2,13 @@ import numpy as np
 from sklearn import clone
 from sklearn.model_selection import train_test_split
 
-from sklearn.utils import shuffle
-
 from sklearn.utils._joblib import Parallel, delayed
-from sklearn.utils.multiclass import type_of_target
 
 from mlrank.preprocessing.dichtomizer import (
-    dichtomize_vector,
-    dichtomize_matrix,
-    DichtomizationIssue,
-    MaxentropyMedianDichtomizationTransformer)
-from mlrank.submodular.metrics.target import mutual_information_classification
-from mlrank.submodular.optimization.optimizer import SubmodularOptimizer
-from mlrank.submodular.metrics.subset import (
-    #informational_regularization_regression,
-    informational_regularization_classification
+    DichtomizationIssue
 )
+from mlrank.submodular.optimization.optimizer import SubmodularOptimizer
+
 
 from functools import partial
 
@@ -36,6 +27,8 @@ class MultilinearUSM(SubmodularOptimizer):
         self.n_features = None
 
     def multiliear_extension(self, x) -> float:
+        n_iterations = int(1 / (self.me_eps ** 2))
+
         def make_sample_from_dist(x):
             res = list()
             for i in x:
@@ -45,6 +38,18 @@ class MultilinearUSM(SubmodularOptimizer):
         def sample_submodular(loss_func):
             return loss_func(make_sample_from_dist(x))
 
+        # if x is deterministic then return score on deterministic subset
+        if len(set(np.unique(x).tolist()).difference([1, 0])) == 0:
+            return self.score(np.atleast_1d(np.argwhere(x).squeeze()).tolist())
+
+        x_a = np.array(x)
+
+        # Statistically ', expected_samples, ' out of n_iterations will be sampled. Therefore set all the <1 probabilities as 1
+        expected_samples = (1-np.min(x_a[x_a > 0])) * n_iterations
+        if expected_samples < 1:
+            #print('Statistically ', expected_samples, ' out of n_iterations will be sampled. Therefore set all the <1 probabilities as 1')
+            return self.score(np.atleast_1d(np.argwhere(x_a > 0).squeeze()).tolist())
+
         if self.n_jobs > 1:
             sampled_losses = Parallel(self.n_jobs)(
                 delayed(partial(
@@ -52,11 +57,11 @@ class MultilinearUSM(SubmodularOptimizer):
                     loss_func=self.score)
                 )()
 
-                for _ in range(int(1 / (self.me_eps ** 2)))
+                for _ in range(n_iterations)
             )
         else:
             sampled_losses = list()
-            for _ in range(int(1 / (self.me_eps ** 2))):
+            for _ in range(n_iterations):
                 sampled_losses.append(sample_submodular(self.score))
 
         return float(np.mean(sampled_losses))
@@ -139,7 +144,7 @@ class MultilinearUSMClassic(MultilinearUSM):
         self.y = None
 
         self.seeds = [(42 + i) for i in range(self.n_cv)]
-        print(me_eps, 'requires multilinear approximation requires', int(1. / (me_eps ** 2)), 'samples.')
+        print(me_eps, 'approximation requires', int(1. / (me_eps ** 2)), 'samples from categorical distribution.')
 
     def score(self, A):
         if not A:
@@ -206,7 +211,7 @@ class MultilinearUSMExtended(MultilinearUSM):
         self.X_t = None
         self.y = None
 
-        print(me_eps, 'requires multilinear approximation requires', int(1. / (me_eps ** 2)), 'samples.')
+        print(me_eps, 'approximation requires', int(1. / (me_eps ** 2)), 'samples from categorical distribution.')
 
     def score(self, A):
         return self._score_function(A)
@@ -221,9 +226,6 @@ class MultilinearUSMExtended(MultilinearUSM):
             raise DichtomizationIssue(self.n_bins)
 
         self.n_features = X.shape[1]
-
-        #self.score = partial(mutual_information_classification, X=X, y=y, decision_function=self.decision_function)
-        #self.penalty = partial(informational_regularization_classification, X_f=X, X_t=X_t, decision_function=self.decision_function)
 
         self._score_function = partial(self.score_function, X_f=self.X_f, X_t=self.X_t, y=self.y, decision_function=self.decision_function)
 

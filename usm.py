@@ -1,22 +1,55 @@
-import numpy as np
-from sklearn.linear_model import LinearRegression
-from sklearn.linear_model import LogisticRegression
-from sklearn.metrics import accuracy_score
+from functools import partial
 
+import numpy as np
+from sklearn.linear_model import LogisticRegression
+
+from mlrank.preprocessing.dichtomizer import dichtomize_vector
 from mlrank.synth.linear import LinearProblemGenerator
-from mlrank.preprocessing.dichtomizer import dichtomize_matrix
-from mlrank.submodularity.optimization.usm import MultilinearUSM
+from mlrank.submodular.optimization.usm import (
+    MultilinearUSMExtended,
+    MultilinearUSMClassic
+)
+from mlrank.submodular.metrics import mutual_information_regularized_score_penalized
+from sklearn.metrics import mutual_info_score
+
 
 if __name__ == '__main__':
     np.random.seed(42)
-    data = LinearProblemGenerator.make_mc_uniform(100, np.array([.1, 5, -3]), 2, 5)#(500, 10, 10, 5)
+    #data = LinearProblemGenerator.make_mc_uniform(300, np.array([2, 5, -3]), 2, 5)#(500, 10, 10, 5)
+    data = LinearProblemGenerator.make_normal_normal(300, coefs=np.array([2, 5, -3]), n_junk=4)  # (500, 10, 10, 5)
 
     X = np.hstack(data['features'])
     y = data['target']
 
-    decision_function = LinearRegression()
+    print(data['mask'])
 
-    for i in [4, 8, 16]:
-        ums = MultilinearUSM(decision_function, i, .3)
+    decision_function = LogisticRegression(multi_class='ovr', solver='liblinear')
+    score_function = partial(mutual_information_regularized_score_penalized, _lambda = 1.0, _gamma = 0.3)
+
+    for i in [2, 4, 8]:
+        ums = MultilinearUSMExtended(
+            decision_function,
+            score_function,
+            n_bins=i,
+            me_eps=.15,
+            threshold=.5
+        )
 
         print(ums.select(X, y))
+
+    print('-' * 100)
+    print('-' * 100)
+
+    for i in [2, 4, 8]:
+        ums = MultilinearUSMClassic(
+            decision_function,
+            mutual_info_score,
+            n_bins=i,
+            me_eps=.1,
+            threshold=.5,
+            n_cv=1,
+            train_share=.8
+        )
+
+        print(ums.select(X, y))
+

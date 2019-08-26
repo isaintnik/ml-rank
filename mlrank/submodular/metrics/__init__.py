@@ -40,3 +40,11 @@ def mutual_information_regularized_score_penalized(A, X_f, X_t, y, decision_func
     return mutual_information_classification(A=A, X=X_f, y=y, decision_function=decision_function) - \
         float(_lambda) * informational_regularization_classification(A=A, X_f=X_f, X_t=X_t, decision_function=decision_function) - \
         float(_gamma) * len(A) / X_f.shape[1]
+
+
+def mutual_info_bic():
+    pass
+
+
+def mutual_info_aic():
+    pass

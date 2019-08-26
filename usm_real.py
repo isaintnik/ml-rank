@@ -1,10 +1,12 @@
 import os
 import sys
 import warnings
+from functools import partial
+
 from sklearn.exceptions import ConvergenceWarning
 from sklearn.metrics import accuracy_score
 
-from mlrank.submodularity.optimization.ffs import ForwardFeatureSelection
+from mlrank.submodular.metrics import mutual_information_regularized_score_penalized
 
 if not sys.warnoptions:
     warnings.simplefilter("ignore")
@@ -18,8 +20,12 @@ from sklearn.externals import joblib
 
 from itertools import product
 
-from mlrank.submodularity.optimization.usm import MultilinearUSM
-from mlrank.benchmarks.holdout import HoldoutBenchmark
+from mlrank.submodular.optimization.usm import (
+    MultilinearUSMExtended,
+    MultilinearUSMClassic
+)
+
+from mlrank.benchmarks.holdout import HoldoutBenchmark, DichtomizedHoldoutBenchmark
 
 # models
 from lightgbm import LGBMRegressor, LGBMClassifier
@@ -154,7 +160,7 @@ ALGO_PARAMS = {
 
     'decision_function': [
         {'regression': Lasso(),
-         'classification': LogisticRegression(multi_class='auto', solver='liblinear', penalty='l1', C=1)},
+         'classification': LogisticRegression(multi_class='auto', solver='liblinear', penalty='l2', C=1)},
         #{'regression': MLPRegressor(hidden_layer_sizes=(5, 5), activation='relu'),
         # 'classification': MLPClassifier(hidden_layer_sizes=(5, 5), activation='relu')},
         #{'regression': LGBMRegressor(
@@ -185,24 +191,9 @@ ALGO_PARAMS = {
 
 # hyperparameters
 HYPERPARAMS = {
-    'bins': [4, 8, 16],
+    'bins': [2, 4, 8],
     'lambda': [.0, .3, .6, 1.]
 }
-
-
-def evaluate_model(X, y, decision_function, bins, lambda_param, problem):
-    ums = MultilinearUSM(
-        decision_function=decision_function, n_bins=bins, me_eps=.1,
-        lambda_param=lambda_param, n_jobs=6
-    )
-
-    result = ums.select(X, y)
-
-    return {
-        'bins': bins,
-        'lambda': lambda_param,
-        'result': result[0]
-    }
 
 
 if __name__ == '__main__':
@@ -228,15 +219,17 @@ if __name__ == '__main__':
                 print(key, bins, 'very small dataset for such dichtomization.')
                 continue
 
-            bench = HoldoutBenchmark(
-                MultilinearUSM(
-                    decision_function=dfunc, n_bins=bins, me_eps=.1,
-                    lambda_param=lambda_param, n_jobs=1
+            score_function = partial(mutual_information_regularized_score_penalized, _lambda=lambda_param, _gamma=0.1)
+
+            bench = DichtomizedHoldoutBenchmark(
+                MultilinearUSMExtended(
+                    decision_function=dfunc, score_function=score_function, n_bins=bins, me_eps=.15, n_jobs=1
                 ),
                 feature_selection_share=feature_selection_share,
                 decision_function=dfunc,
                 n_holdouts=100,
-                n_jobs=12
+                n_bins=bins,
+                n_jobs=1
             )
 
             predictions = bench.benchmark(X, y)

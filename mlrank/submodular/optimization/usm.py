@@ -121,12 +121,11 @@ class MultilinearUSMClassic(MultilinearUSM):
         :param type_of_problem:
         :param n_jobs:
         """
-        super().__init__(me_eps, n_jobs)
+        super().__init__(threshold=threshold, me_eps=me_eps, n_jobs=n_jobs)
 
         self.n_bins = n_bins
         self.decision_function = clone(decision_function)
         self.score_function = score_function
-        self.threshold = threshold
         self.n_cv = n_cv
         self.train_share = train_share
 
@@ -195,22 +194,17 @@ class MultilinearUSMExtended(MultilinearUSM):
         :param type_of_problem:
         :param n_jobs:
         """
-        super().__init__()
+        super().__init__(threshold=threshold, me_eps=me_eps, n_jobs=n_jobs)
 
         self.n_bins = n_bins
         self.decision_function = clone(decision_function)
         self.score_function = score_function
-        self.threshold = threshold
-
-        self.me_eps = me_eps
 
         self.n_features = None
         self._score_function = None
         self.X_f = None
         self.X_t = None
         self.y = None
-
-        self.n_jobs=n_jobs
 
         print(me_eps, 'requires multilinear approximation requires', int(1. / (me_eps ** 2)), 'samples.')
 

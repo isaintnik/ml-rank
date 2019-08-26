@@ -1,41 +1,105 @@
 import numpy as np
-from sklearn.linear_model import LinearRegression
-from sklearn.linear_model import LogisticRegression
-from sklearn.metrics import accuracy_score
+import os
+import sys
+import warnings
+
+from mlrank.submodular.metrics import mutual_information_regularized_score_penalized
+from sklearn.metrics import mutual_info_score
+
+if not sys.warnoptions:
+    warnings.simplefilter("ignore")
+    os.environ["PYTHONWARNINGS"] = "ignore" # Also affect subprocesses
 
 from itertools import product
 
-from mlrank.synth.linear import LinearProblemGenerator
-from mlrank.preprocessing.dichtomizer import dichtomize_matrix
-from mlrank.submodularity.optimization.usm import MultilinearUSM
+# submodular optimizer
+from mlrank.submodular.optimization.usm import (
+    MultilinearUSMExtended,
+    MultilinearUSMClassic
+)
 
+# sklearn stuff
 from sklearn.utils._joblib import Parallel, delayed
-from sklearn import clone
 from sklearn.externals import joblib
+from sklearn import clone
 
-from lightgbm import LGBMRegressor
+# models
+from lightgbm import LGBMRegressor, LGBMClassifier
+from sklearn.linear_model import LinearRegression, LogisticRegression
+from sklearn.neural_network import MLPRegressor, MLPClassifier
+
+# problems
+from mlrank.synth.linear import LinearProblemGenerator
+from mlrank.synth.nonlinear import NonlinearProblemGenerator
+
+from functools import partial
+
 
 # algorithm params
 ALGO_PARAMS = {
-    'size': [40, 100, 200, 500],
-    'config': [(3, 5, 2), (3, 2, 5), (5, 5 ,5)],
-    'decision_function': [LinearRegression(), LGBMRegressor()]
+    'size': [50, 100, 300, 500],
+    'problem': [
+        {'name': 'norm_norm', 'generator': partial(LinearProblemGenerator.make_normal_normal, coefs=np.array([2, 5, -3]), n_junk=4)},
+        {'name': 'norm_uni', 'generator': partial(LinearProblemGenerator.make_normal_uniform, coefs=np.array([2, 5, -3]), n_junk=4)},
+        {'name': 'mc', 'generator': partial(LinearProblemGenerator.make_mc_uniform, coefs=np.array([2, 5, -3]), n_correlated=2, n_junk=4)},
+
+        {'name': 'lc_log', 'generator': partial(NonlinearProblemGenerator.make_nonlinear_linear_combination_problem, coefs=np.array([2, 5, -3]), n_junk=2, func=np.log)},
+        {'name': 'r_log_eye', 'generator': partial(NonlinearProblemGenerator.make_nonlinear_relations_problem, coefs=np.array([2, 5, -3]), n_junk=2, functions=[np.log, lambda x: x, np.log])},
+        {'name': 'xor', 'generator': partial(NonlinearProblemGenerator.make_xor_continuous_problem, n_ground=5, n_binary_xoring=2, n_junk=2)},
+    ],
+
+    'decision_function': [
+        LogisticRegression(multi_class='auto', solver='liblinear', penalty='l1', C=1),
+        MLPClassifier(hidden_layer_sizes=(5, 5), activation='relu'),
+        LGBMClassifier(
+            boosting_type='gbdt',
+            learning_rate=0.05,
+            num_iterations=600,
+            max_depth=5,
+            n_estimators=600,
+            verbose=-1,
+            num_leaves=2 ** 5,
+            silent=True
+        )
+    ]
 }
 
 # hyperparameters
 HYPERPARAMS = {
-    'bins': [4, 8, 16],
-    'lambda': [.1, .3, .6, 1.]
+    'bins': [2, 4, 8],
+    'lambda': [0, .3, .6, 1.]
 }
 
 
-def evaluate_model(X, y, decision_function, bins, lambda_param, gound):
-    ums = MultilinearUSM(
+def evaluate_model_info_loss(X, y, decision_function, bins, lambda_param, mask):
+    score_function = partial(mutual_information_regularized_score_penalized, _lambda=lambda_param, _gamma=0.1)
+
+    ums = MultilinearUSMExtended(
         decision_function,
-        bins,
-        me_eps=.1,
+        score_function,
+        n_bins=bins,
+        me_eps=.15,
+        threshold=.5,
+    )
+
+    result = ums.select(X, y)
+
+    return {
+        'bins': bins,
+        'lambda': lambda_param,
+        'result': result,
+        'ground': mask
+    }
+
+
+def evaluate_model_generic_loss(X, y, decision_function, bins, lambda_param, mask):
+    ums = MultilinearUSMClassic(
+        decision_function,
+        mutual_info_score,
+        n_bins=bins,
+        me_eps=.15,
+        threshold=.5,
         lambda_param=lambda_param,
-        type_of_problem='regression'
     )
 
     result = ums.select(X, y)
@@ -43,7 +107,7 @@ def evaluate_model(X, y, decision_function, bins, lambda_param, gound):
         'bins': bins,
         'lambda': lambda_param,
         'result': result,
-        'ground': gound
+        'ground': mask
     }
 
 
@@ -52,26 +116,27 @@ if __name__ == '__main__':
 
     results = {}
 
-    for size, config, decision_function in product(
-            ALGO_PARAMS['size'], ALGO_PARAMS['config'], ALGO_PARAMS['decision_function']
+    #if os.path.isfile("./data/mlrank_stat_lin_nonlin.bin"):
+    #    result = joblib.load("./data/mlrank_stat_lin_nonlin.bin")
+
+    for size, problem, decision_function in product(
+            ALGO_PARAMS['size'], ALGO_PARAMS['problem'], ALGO_PARAMS['decision_function']
     ):
         key = "{}_{}_{}".format(
-            size, '_'.join([str(i) for i in config]), decision_function.__class__.__name__
+            size, problem['name'], decision_function.__class__.__name__
         )
 
-        y, ground, noise, corr = LinearProblemGenerator.make_mc_uniform(size, *config)#(500, 10, 10, 5)
+        print(key)
 
-        X = np.hstack([ground, noise, corr])
+        data = problem['generator'](size)
 
-        n_ground = ground.shape[1]
-        n_noise = noise.shape[1]
-        n_corr = corr.shape[1]
+        y = data['target']
+        X = np.hstack(data['features'])
+        mask = data['mask']
 
-        gound = ([1] * n_ground) + ([0] * n_noise) + ([2] * n_corr)
-
-        results[key] = Parallel(n_jobs=6)(
-            delayed(evaluate_model)(X, y, clone(decision_function), bins, lambda_param, gound)
+        results[key] = Parallel(n_jobs=10)(
+            delayed(evaluate_model_info_loss)(X, y, clone(decision_function), bins, lambda_param, mask)
             for bins, lambda_param in product(HYPERPARAMS['bins'], HYPERPARAMS['lambda'])
         )
 
-        joblib.dump(results, "./data/mlrank_stat.bin")
+        joblib.dump(results, "./data/mlrank_synth.bin")

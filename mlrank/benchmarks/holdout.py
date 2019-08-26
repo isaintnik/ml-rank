@@ -79,6 +79,9 @@ class DichtomizedHoldoutBenchmark(HoldoutBenchmark):
 
         model = clone(self.decision_function)
 
+        print(y_complete)
+        print(y_train)
+
         if type_of_target(y_complete) == 'continuous':
             dichtomizer = MaxentropyMedianDichtomizationTransformer(n_splits = self.n_bins)
             dichtomizer.fit(y_complete.reshape(-1, 1))

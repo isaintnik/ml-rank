@@ -19,7 +19,7 @@ problems = [
     },
     {
         'name': 'r_log',
-        'problem': NonlinearProblemGenerator.make_nonlinear_relations_problem(1000, np.array([0.2, 5, 9]), 2,  [np.log, lambda x: x])
+        'problem': NonlinearProblemGenerator.make_nonlinear_relations_problem(300, np.array([0.2, 5, 9]), 2,  [np.log, lambda x: x])
     }
 ]
 

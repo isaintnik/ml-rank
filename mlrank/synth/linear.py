@@ -90,7 +90,7 @@ class LinearProblemGenerator(object):
 
         X_corr = np.concatenate(cor_features, axis=1)
 
-        y = (X_ground * coefs.reshape(1, -1)).sum(1) + np.random.normal(0, 10)
+        y = (X_ground * coefs.reshape(1, -1)).sum(1) + np.random.normal(0, 5)
 
         # add noisy features
 

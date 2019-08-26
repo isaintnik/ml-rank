@@ -214,7 +214,8 @@ def dichtomize_vector(y, n_bins, ordered=False):
     if type_of_target(y) == 'continuous':
         splitter = MaxentropyMedianDichtomizationTransformer(n_bins)
         y_unique = np.unique(y)
-        if n_bins > y_unique.shape[0]:
+
+        if n_bins < y_unique.shape[0]:
             splitter.fit(y.reshape(-1, 1))
         else:
             return np.array(map_continuous_names(y))

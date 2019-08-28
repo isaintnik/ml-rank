@@ -250,7 +250,7 @@ if __name__ == '__main__':
                 decision_function=dfunc,
                 n_holdouts=100,
                 n_bins=bins,
-                n_jobs=10
+                n_jobs=8
             )
 
             predictions = bench.benchmark(X, y)
@@ -261,4 +261,4 @@ if __name__ == '__main__':
                 'result': predictions
             })
 
-            #joblib.dump(results, "./data/mlrank_realdata_usm.bin")
+            joblib.dump(results, "./data/mlrank_realdata_usm.bin")

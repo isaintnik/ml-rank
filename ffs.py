@@ -29,17 +29,17 @@ if __name__ == '__main__':
 
     print('new metric')
 
-    for i in [2, 4, 8]:
-        ffs = ForwardFeatureSelectionExtended(
-            decision_function,
-            score_function,
-            n_bins=i
-        )
-
-        print(ffs.select(X, y))
-        print(ffs.get_logs())
-
-    print('classic mutual information')
+    #for i in [2, 4, 8]:
+    #    ffs = ForwardFeatureSelectionExtended(
+    #        decision_function,
+    #        score_function,
+    #        n_bins=i
+    #    )
+    #
+    #    print(ffs.select(X, y))
+    #    print(ffs.get_logs())
+    #
+    #print('classic mutual information')
 
     for i in [2, 4, 8]:
         ffs = ForwardFeatureSelectionClassic(
@@ -47,7 +47,8 @@ if __name__ == '__main__':
             mutual_info_score,
             n_bins=i,
             train_share=0.6,
-            n_cv_ffs=1
+            n_cv_ffs=1,
+            n_features=5
         )
 
         print(ffs.select(X, y))

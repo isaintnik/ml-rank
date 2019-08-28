@@ -18,6 +18,7 @@ class ForwardFeatureSelection(SubmodularOptimizer):
                  score_function,
                  train_share: float = 1.0,
                  n_bins: int = 4,
+                 n_features: int = -1,
                  n_cv_ffs: int = 1
                  ):
         """
@@ -35,7 +36,7 @@ class ForwardFeatureSelection(SubmodularOptimizer):
         self.n_cv_ffs = n_cv_ffs
         self.n_bins = n_bins
         self.train_share = train_share
-        self.n_features = None
+        self.n_features = n_features
         self.logs = None
 
         self.seeds = [(42 + i) for i in range(self.n_cv_ffs)]
@@ -53,6 +54,7 @@ class ForwardFeatureSelectionClassic(ForwardFeatureSelection):
                  score_function,
                  train_share: float = 1.0,
                  n_bins: int = 4,
+                 n_features: int = -1,
                  n_cv_ffs: int = 1
         ):
         """
@@ -68,6 +70,7 @@ class ForwardFeatureSelectionClassic(ForwardFeatureSelection):
             score_function,
             train_share,
             n_bins,
+            n_features,
             n_cv_ffs
         )
 
@@ -118,7 +121,8 @@ class ForwardFeatureSelectionClassic(ForwardFeatureSelection):
 
         subset = list()
         subset_logs = list()
-        self.n_features = X.shape[1]
+        if self.n_features == -1:
+            self.n_features = X.shape[1]
         self.logs = list()
         prev_top_score = -np.inf
 
@@ -134,7 +138,9 @@ class ForwardFeatureSelectionClassic(ForwardFeatureSelection):
 
             top_feature = np.atleast_1d(np.squeeze(np.argmax(feature_scores)))[0]
 
-            if np.max(feature_scores) > prev_top_score:
+            # if top score of new feature is not significant - ignore this and further features
+            # however, if n_features has been specified - proceed
+            if np.max(feature_scores) > prev_top_score or self.n_features < X.shape[1]:
                 subset.append(top_feature)
                 prev_top_score = np.max(feature_scores)
 
@@ -157,6 +163,7 @@ class ForwardFeatureSelectionExtended(ForwardFeatureSelection):
                  score_function,
                  train_share: float = 1.0,
                  n_bins: int = 4,
+                 n_features: int = -1,
                  n_cv_ffs: int = 1
                  ):
         """
@@ -172,6 +179,7 @@ class ForwardFeatureSelectionExtended(ForwardFeatureSelection):
             score_function,
             train_share,
             n_bins,
+            n_features,
             n_cv_ffs
         )
 
@@ -194,7 +202,8 @@ class ForwardFeatureSelectionExtended(ForwardFeatureSelection):
 
         subset = list()
         subset_logs = list()
-        self.n_features = X.shape[1]
+        if self.n_features == -1:
+            self.n_features = X.shape[1]
         self.logs = list()
 
         prev_top_score = -np.inf
@@ -211,7 +220,7 @@ class ForwardFeatureSelectionExtended(ForwardFeatureSelection):
 
             top_feature = np.atleast_1d(np.squeeze(np.argmax(feature_scores)))[0]
 
-            if np.max(feature_scores) > prev_top_score:
+            if np.max(feature_scores) > prev_top_score  or self.n_features < X.shape[1]:
                 subset.append(top_feature)
                 prev_top_score = np.max(feature_scores)
 

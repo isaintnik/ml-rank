@@ -4,7 +4,7 @@ import warnings
 from sklearn.exceptions import ConvergenceWarning
 from sklearn.metrics import accuracy_score
 
-from mlrank.submodularity.optimization.ffs import ForwardFeatureSelection
+from mlrank.submodular.optimization.ffs import ForwardFeatureSelectionClassic
 
 if not sys.warnoptions:
     warnings.simplefilter("ignore")
@@ -18,13 +18,13 @@ from sklearn.externals import joblib
 
 from itertools import product
 
-from mlrank.submodularity.optimization.usm import MultilinearUSM
 from mlrank.benchmarks.holdout import HoldoutBenchmark, DichtomizedHoldoutBenchmark
 
 # models
 from lightgbm import LGBMRegressor, LGBMClassifier
 from sklearn.linear_model import LinearRegression, LogisticRegression, Lasso
 from sklearn.neural_network import MLPRegressor, MLPClassifier
+from sklearn.metrics import mutual_info_score
 
 from sklearn.preprocessing import LabelEncoder
 from sklearn.utils import shuffle
@@ -215,9 +215,9 @@ if __name__ == '__main__':
 
             for i in range(1, X.shape[1]):
                 bench = DichtomizedHoldoutBenchmark(
-                    ForwardFeatureSelection(
+                    ForwardFeatureSelectionClassic(
                         decision_function=dfunc,
-                        score_function=accuracy_score,
+                        score_function=mutual_info_score,
                         train_share=.8,
                         n_cv_ffs=6,
                         n_features=i,

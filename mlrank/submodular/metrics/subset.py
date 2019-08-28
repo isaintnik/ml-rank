@@ -4,7 +4,7 @@ import warnings
 from sklearn.metrics import mutual_info_score, log_loss
 from sklearn.utils.multiclass import type_of_target
 from sklearn.base import clone
-from sklearn.preprocessing import OneHotEncoder, LabelBinarizer
+from sklearn.preprocessing import OneHotEncoder, LabelBinarizer, LabelEncoder
 from sklearn.decomposition import FastICA
 from scipy.stats import entropy
 
@@ -89,3 +89,38 @@ def informational_regularization_classification(A, X_f, X_t, decision_function) 
         infosum.append(mutual_info_score(r_d, p_d))
 
     return np.mean(infosum) / X_f.shape[1]
+
+
+def log_likelihood_cross_features(A, X_f, X_t, decision_function, n_random_iter=20, eps_norm = 1e-8) -> float:
+    f_lls = list()
+
+    for i in range(X_f.shape[1]):
+        model = clone(decision_function)
+
+        lencoder = LabelEncoder()
+        decision_function = clone(decision_function)
+
+        y = X_t[:, i]
+        y_arange = np.arange(y.size)
+        y_labels = lencoder.fit_transform(y)
+        unique_y = np.unique(y)
+
+        if A:
+            if np.unique(y).shape[0] > 1:
+                model.fit(X_f[:, A], y)
+
+                y_pred = model.predict_proba(X_f[:, A])
+                ll = np.sum(np.log(y_pred[y_arange, np.squeeze(y_labels)] + eps_norm))
+            else:
+                # in case of constant model log likelihood = log(0) = 1
+                ll = 0
+        else:
+            lls = list()
+            for i in range(n_random_iter):
+                y_pred = np.random.beta(1 / 2, 1 / 2, size=len(y))
+                lls.append(np.sum(np.log(y_pred + eps_norm)))
+            ll = np.mean(lls)
+
+        f_lls.append(ll)
+
+    return np.mean(f_lls) / X_f.shape[1]

@@ -54,6 +54,19 @@ def mutual_information_regularized_score_penalized(A, X_f, X_t, y, decision_func
     return a - b - c
 
 
+def log_likelihood_regularized_score_bic(A, X_f, X_t, y, decision_function, _lambda, _gamma) -> float:
+    if not hasattr(decision_function, 'predict_proba'):
+        raise Exception('decision function should have predict_proba')
+
+    ll = log_likelihood(A, X_f, y, decision_function, 20)
+    llcf = log_likelihood_cross_features(A, X_f, X_t, decision_function, 20)
+    bic = np.log(X_f.shape[0]) * len(A)
+
+    #print(A, ll, llcf, bic)
+
+    return ll - _lambda * llcf - _gamma * bic
+
+
 def mutual_info_bic():
     pass
 

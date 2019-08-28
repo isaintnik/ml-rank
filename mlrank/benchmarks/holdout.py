@@ -55,6 +55,7 @@ class HoldoutBenchmark(object):
         return model.predict(X_test[:, subset])
 
     def evaluate(self, X, y, seed):
+        print(seed - 42)
         #X_complete, y_complete, X_f, y_f, X_val, y_val, X_test, y_test = self.split_dataset(X, y, seed)
         #subset = self.optimizer.select(X_f, y_f)
 

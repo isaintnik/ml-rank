@@ -88,7 +88,7 @@ def informational_regularization_classification(A, X_f, X_t, decision_function) 
 
         infosum.append(mutual_info_score(r_d, p_d))
 
-    return np.mean(infosum) / X_f.shape[1]
+    return np.sum(infosum)
 
 
 def log_likelihood_cross_features(A, X_f, X_t, decision_function, n_random_iter=20, eps_norm = 1e-8) -> float:
@@ -123,4 +123,4 @@ def log_likelihood_cross_features(A, X_f, X_t, decision_function, n_random_iter=
 
         f_lls.append(ll)
 
-    return np.mean(f_lls) / X_f.shape[1]
+    return np.sum(f_lls)

@@ -7,7 +7,11 @@ from sklearn.exceptions import ConvergenceWarning
 from sklearn.metrics import accuracy_score, mutual_info_score
 
 from mlrank.preprocessing.dichtomizer import dichtomize_vector
-from mlrank.submodular.metrics import mutual_information_regularized_score_penalized
+from mlrank.submodular.metrics import (
+    mutual_information_regularized_score_penalized,
+    log_likelihood_regularized_score_bic
+
+)
 
 if not sys.warnoptions:
     warnings.simplefilter("ignore")
@@ -235,7 +239,8 @@ if __name__ == '__main__':
 
             prev_lambda_param = lambda_param
 
-            score_function = partial(mutual_information_regularized_score_penalized, _lambda=lambda_param, _gamma=0.1)
+            #score_function = partial(mutual_information_regularized_score_penalized, _lambda=lambda_param, _gamma=0.1)
+            score_function = partial(log_likelihood_regularized_score_bic, _lambda=lambda_param, _gamma=0.1)
 
             #y = dichtomize_vector(y, n_bins=2, ordered=False)
             #dfunc.fit(X, y)
@@ -261,4 +266,4 @@ if __name__ == '__main__':
                 'result': predictions
             })
 
-            joblib.dump(results, "./data/mlrank_realdata_usm.bin")
+            joblib.dump(results, "./data/mlrank_realdata_usm_lik_full.bin")

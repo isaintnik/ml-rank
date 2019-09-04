@@ -51,7 +51,7 @@ def mutual_information_regularized_score_penalized(A, X_f, X_t, y, decision_func
 
     c = float(_gamma) * float(len(A)) / X_f.shape[1]
 
-    return a - b - c
+    return a - b# - c
 
 
 def log_likelihood_regularized_score_bic(A, X_f, X_t, y, decision_function, _lambda, _gamma) -> float:
@@ -64,7 +64,7 @@ def log_likelihood_regularized_score_bic(A, X_f, X_t, y, decision_function, _lam
 
     #print(A, ll, llcf, bic)
 
-    return ll - _lambda * llcf - _gamma * bic
+    return ll - _lambda * llcf# - _gamma * bic
 
 
 def mutual_info_bic():

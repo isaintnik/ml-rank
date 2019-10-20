@@ -9,9 +9,10 @@ from sklearn.metrics import accuracy_score, mutual_info_score
 from mlrank.preprocessing.dichtomizer import dichtomize_vector
 from mlrank.submodular.metrics import (
     mutual_information_regularized_score_penalized,
-    log_likelihood_regularized_score_bic
+    log_likelihood_regularized_score,
 
-)
+    log_likelihood_regularized_score_val)
+from mlrank.submodular.optimization.ffs import ForwardFeatureSelectionExtended
 
 if not sys.warnoptions:
     warnings.simplefilter("ignore")
@@ -158,12 +159,12 @@ LUNG_CANCER_PATH = './datasets/lung-cancer.data'
 # algorithm params
 ALGO_PARAMS = {
     'dataset': [
-        {'problem': 'classification', 'name': "lung_cancer", 'data': DataLoader.load_data_lung_cancer(LUNG_CANCER_PATH)},
+        #{'problem': 'classification', 'name': "lung_cancer", 'data': DataLoader.load_data_lung_cancer(LUNG_CANCER_PATH)},
         #{'problem': 'classification', 'name': "forest_fire", 'data': DataLoader.load_data_forest_fire(FOREST_FIRE_PATH)},
         #{'problem': 'classification', 'name': "forest_fire_log", 'data': DataLoader.load_data_forest_fire_log(FOREST_FIRE_PATH)},
         #{'problem': 'classification', 'name': "arrhythmia", 'data': DataLoader.load_data_arrhythmia(ARRHYTHMIA_PATH)},
         {'problem': 'classification', 'name': "breast_cancer", 'data': DataLoader.load_data_breast_cancer(BREAST_CANCER_PATH)},
-        {'problem': 'classification', 'name': "heart_desease", 'data': DataLoader.load_data_heart_desease(HEART_DESEASE_PATH)},
+        #{'problem': 'classification', 'name': "heart_desease", 'data': DataLoader.load_data_heart_desease(HEART_DESEASE_PATH)},
         #{'problem': 'classification', 'name': "seizures", 'data': DataLoader.load_data_seizures(SEIZURES_PATH)} # pretty heavy
     ],
 
@@ -200,8 +201,8 @@ ALGO_PARAMS = {
 
 # hyperparameters
 HYPERPARAMS = {
-    'bins': [2, 4, 8],
-    'lambda': [.0, .3, .6, 1.]
+    'bins': [4, 8],
+    'lambda': [.0, 0.01, 0.02, 0.03, 0.04, 0.05, 0.06, 0.07, 0.08, 0.09, 0.1, .12, .14, .16, .18, .20]
 }
 
 
@@ -233,23 +234,39 @@ if __name__ == '__main__':
                 print(key, bins, 'very small dataset for such dichtomization.')
                 continue
 
-            if prev_lambda_param == lambda_param and type_of_target(y) != 'continuous':
-                print('skipping dichtomization.')
-                continue
+            #if prev_lambda_param == lambda_param and type_of_target(y) != 'continuous':
+            #    print('skipping dichtomization.')
+            #    continue
 
-            prev_lambda_param = lambda_param
+            #prev_lambda_param = lambda_param
 
             #score_function = partial(mutual_information_regularized_score_penalized, _lambda=lambda_param, _gamma=0.1)
-            score_function = partial(log_likelihood_regularized_score_bic, _lambda=lambda_param, _gamma=0.1)
+            #score_function = partial(log_likelihood_regularized_score, _lambda=lambda_param)
+            score_function = partial(log_likelihood_regularized_score_val, _lambda=lambda_param)
 
             #y = dichtomize_vector(y, n_bins=2, ordered=False)
             #dfunc.fit(X, y)
             #yy = dfunc.predict(X)
             #print(mutual_info_score(dfunc.predict(X), y))
 
+            #bench = DichtomizedHoldoutBenchmark(
+            #    MultilinearUSMExtended(
+            #        decision_function=dfunc, score_function=score_function, n_bins=bins, me_eps=.15, n_jobs=1
+            #    ),
+            #    feature_selection_share=feature_selection_share,
+            #    decision_function=dfunc,
+            #    n_holdouts=100,
+            #    n_bins=bins,
+            #    n_jobs=8
+            #)
+
             bench = DichtomizedHoldoutBenchmark(
-                MultilinearUSMExtended(
-                    decision_function=dfunc, score_function=score_function, n_bins=bins, me_eps=.15, n_jobs=1
+                ForwardFeatureSelectionExtended(
+                    decision_function=dfunc,
+                    score_function=score_function,
+                    n_bins=bins,
+                    train_share=0.8,
+                    n_cv_ffs=6,
                 ),
                 feature_selection_share=feature_selection_share,
                 decision_function=dfunc,
@@ -266,4 +283,4 @@ if __name__ == '__main__':
                 'result': predictions
             })
 
-            joblib.dump(results, "./data/mlrank_realdata_usm_lik_full.bin")
+            joblib.dump(results, "./data/mlrank_realdata_usm_lik_full_2.bin")

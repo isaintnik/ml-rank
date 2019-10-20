@@ -103,13 +103,51 @@ def log_likelihood_cross_features(A, X_f, X_t, decision_function, n_random_iter=
         y = X_t[:, i]
         y_arange = np.arange(y.size)
         y_labels = lencoder.fit_transform(y)
-        unique_y = np.unique(y)
 
         if A:
             if np.unique(y).shape[0] > 1:
                 model.fit(X_f[:, A], y)
 
                 y_pred = model.predict_proba(X_f[:, A])
+                ll = np.sum(np.log(y_pred[y_arange, np.squeeze(y_labels)] + eps_norm))
+            else:
+                # in case of constant model log likelihood = log(0) = 1
+                ll = 0
+        else:
+            lls = list()
+            for i in range(n_random_iter):
+                y_pred = np.random.beta(1 / 2, 1 / 2, size=len(y))
+                lls.append(np.sum(np.log(y_pred + eps_norm)))
+            ll = np.mean(lls)
+
+        f_lls.append(ll)
+
+    return np.sum(f_lls)
+
+
+def log_likelihood_cross_features_val(A, X_f, X_f_test, X_t, X_t_test, decision_function, n_random_iter=20, eps_norm = 1e-8) -> float:
+    f_lls = list()
+
+    X_t_full = np.vstack([X_t, X_t_test])
+
+    for i in range(X_f.shape[1]):
+        model = clone(decision_function)
+
+        lencoder = LabelEncoder()
+        decision_function = clone(decision_function)
+
+        y = X_t[:, i]
+        y_test = X_t_test[:, i]
+        lencoder.fit(X_t_full[:, i])
+
+        y_labels = lencoder.transform(y_test)
+        y_arange = np.arange(y_test.size)
+
+        if A:
+            if np.unique(y).shape[0] > 1:
+                model.fit(X_f[:, A], y)
+
+                y_pred = model.predict_proba(X_f_test[:, A])
                 ll = np.sum(np.log(y_pred[y_arange, np.squeeze(y_labels)] + eps_norm))
             else:
                 # in case of constant model log likelihood = log(0) = 1

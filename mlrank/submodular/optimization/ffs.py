@@ -143,6 +143,8 @@ class ForwardFeatureSelectionClassic(ForwardFeatureSelection):
             if np.max(feature_scores) > prev_top_score or self.n_features < X.shape[1]:
                 subset.append(top_feature)
                 prev_top_score = np.max(feature_scores)
+            else:
+                break
 
             subset_logs.append(top_feature)
 
@@ -186,10 +188,23 @@ class ForwardFeatureSelectionExtended(ForwardFeatureSelection):
     def _evaluate_new_feature(self, prev_subset, new_feature, X_f, X_t, y) -> float:
         A = prev_subset + [new_feature]
 
-        if self.n_cv_ffs > 1:
-            print('ignoring number of CV > 1')
+        scores = list()
+        for i in range(self.n_cv_ffs):
+            X_f_train, X_f_test, X_t_train, X_t_test, y_train, y_test = train_test_split(
+                X_f, X_t, y, random_state=self.seeds[i], shuffle=True, test_size=1 - self.train_share
+            )
 
-        return self.score_function(A=A, X_f=X_f, X_t=X_t, y=y, decision_function=self.decision_function)
+            scores.append(
+                #self.score_function(A=A, X_f=X_f, X_t=X_t, y=y, decision_function=self.decision_function)
+                self.score_function(
+                    A=A, X_f=X_f_train, X_f_test=X_f_test,
+                    X_t=X_t_train, X_t_test=X_t_test,
+                    y=y_train, y_test=y_test,
+                    decision_function=self.decision_function
+                )
+            )
+
+        return np.mean(scores)
 
     def select(self, X, y) -> list:
         try:
@@ -211,18 +226,20 @@ class ForwardFeatureSelectionExtended(ForwardFeatureSelection):
         for i in range(self.n_features):
             feature_scores = list()
 
-            for i in range(X.shape[1]):
+            for i in range(self.n_features):
                 if i in subset_logs:
                     feature_scores.append(-np.inf)
                     continue
 
                 feature_scores.append(self._evaluate_new_feature(subset, i, X_f, X_t, y))
 
-            top_feature = np.atleast_1d(np.squeeze(np.argmax(feature_scores)))[0]
+            top_feature = np.argmax(feature_scores)#np.atleast_1d(np.squeeze(np.argmax(feature_scores)))[0]
 
             if np.max(feature_scores) > prev_top_score  or self.n_features < X.shape[1]:
                 subset.append(top_feature)
                 prev_top_score = np.max(feature_scores)
+            else:
+                break
 
             subset_logs.append(top_feature)
 
@@ -230,5 +247,4 @@ class ForwardFeatureSelectionExtended(ForwardFeatureSelection):
                 'subset': np.copy(subset_logs).tolist(),
                 'score': np.max(feature_scores)
             })
-
         return subset

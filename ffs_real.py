@@ -3,9 +3,11 @@ import sys
 import warnings
 from functools import partial
 
+from mlrank.datasets.internet import InternetDataSet
 from mlrank.preprocessing.dichtomizer import DichtomizationImpossible
-from mlrank.submodular.metrics import log_likelihood_regularized_score_val
+from mlrank.submodular.metrics import log_likelihood_regularized_score_val, log_likelihood_bic, bic_regularized
 from mlrank.submodular.optimization.ffs import ForwardFeatureSelectionClassic, ForwardFeatureSelectionExtended
+from mlrank.submodular.optimization.usm import MultilinearUSMExtended
 
 if not sys.warnoptions:
     warnings.simplefilter("ignore")
@@ -14,8 +16,8 @@ if not sys.warnoptions:
 import numpy as np
 from sklearn.externals import joblib
 from itertools import product
-from mlrank.benchmarks.holdout import DichtomizedHoldoutBenchmark
-from mlrank.benchmarks.traintest import TrainTestBenchmark, DichtomizedTrainTestBenchmark
+from mlrank.benchmarks.holdout_bench import DichtomizedHoldoutBenchmark
+from mlrank.benchmarks.traintest_bench import TrainTestBenchmark, DichtomizedTrainTestBenchmark
 from mlrank.datasets import (AdultDataSet, AmazonDataSet, BreastDataSet)
 
 # models
@@ -26,12 +28,13 @@ from sklearn.metrics import mutual_info_score
 
 
 BREAST_CANCER_PATH = './datasets/breast_cancer.csv'
+AMAZON_PATH = './datasets/amazon_train.csv'
 
 ADULT_TRAIN_PATH = './datasets/adult_train.csv'
 ADULT_TEST_PATH = './datasets/adult_test.csv'
 
-AMAZON_TRAIN_PATH = './datasets/amazon_train.csv'
-AMAZON_TEST_PATH = './datasets/amazon_test.csv'
+INTERNET_TRAIN_PATH = './datasets/internet_train.dat'
+INTERNET_TEST_PATH = './datasets/internet_test.dat'
 
 #ARRHYTHMIA_PATH = './datasets/arrhythmia.data'
 #FOREST_FIRE_PATH = './datasets/forestfires.csv'
@@ -42,9 +45,10 @@ AMAZON_TEST_PATH = './datasets/amazon_test.csv'
 # algorithm params
 ALGO_PARAMS = {
     'dataset': [
-        #{'type': 'holdout', 'problem': 'classification', 'name': "lung_cancer", 'data': BreastDataSet(BREAST_CANCER_PATH)},
-        #{'type': 'train_test', 'problem': 'classification', 'name': "adult", 'data': AdultDataSet(ADULT_TRAIN_PATH, ADULT_TEST_PATH)},
-        {'type': 'train_test', 'problem': 'classification', 'name': "amazon", 'data': AmazonDataSet(AMAZON_TRAIN_PATH, AMAZON_TEST_PATH)},
+        #{'type': 'holdout', 'problem': 'classification', 'name': "breast_cancer", 'data': BreastDataSet(BREAST_CANCER_PATH)},
+        #{'type': 'holdout', 'problem': 'classification', 'name': "amazon", 'data': AmazonDataSet(AMAZON_PATH)},
+        {'type': 'train_test', 'problem': 'classification', 'name': "adult", 'data': AdultDataSet(ADULT_TRAIN_PATH, ADULT_TEST_PATH)},
+        #{'type': 'train_test', 'problem': 'classification', 'name': "internet", 'data': InternetDataSet(INTERNET_TRAIN_PATH, INTERNET_TEST_PATH)},
     ],
 
     'decision_function': [
@@ -98,6 +102,7 @@ def benchmark_holdout(dataset, decision_function, lambda_param, bins):
 
     dfunc = decision_function['classification']
     score_function = partial(log_likelihood_regularized_score_val, _lambda=lambda_param)    #score_function = partial(decision_function, _lambda=lambda_param)
+    #score_function = bic_regularized
 
     bench = DichtomizedHoldoutBenchmark(
         ForwardFeatureSelectionExtended(
@@ -107,6 +112,13 @@ def benchmark_holdout(dataset, decision_function, lambda_param, bins):
             train_share=0.8,
             n_cv_ffs=8,
         ),
+        #MultilinearUSMExtended(
+        #    decision_function=dfunc,
+        #    score_function=score_function,
+        #    n_bins=bins,
+        #    train_share=0.8,
+        #    n_cv=8,
+        #),
         feature_selection_share=feature_selection_share,
         decision_function=dfunc,
         n_holdouts=70,

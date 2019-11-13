@@ -7,24 +7,21 @@ class AdultDataSet(SeparatedDataset):
         super().__init__('adult', train_folder, test_folder)
         self.encoders = None
 
-    def load_from_folder(self, folder: str):
-       pass
-
     def load_train_from_file(self):
         self.train = pd.read_csv(self.train_folder)
         self.train = self.train.sample(frac=1)
-        self.train = self.train.drop('Unnamed: 0', axis=1)
-        self.train = self.train.dropna()
+        self.train.drop('Unnamed: 0', axis=1, inplace=True)
+        self.train.dropna(inplace=True)
 
     def load_test_from_file(self):
         self.test = pd.read_csv(self.test_folder)
         self.test = self.test.sample(frac=1)
-        self.test = self.test.drop('Unnamed: 0', axis=1)
-        self.test = self.test.dropna()
+        self.test.drop('Unnamed: 0', axis=1, inplace=True)
+        self.test.dropna(inplace=True)
 
     def process_features(self):
-        self.train = self.train.drop('education', axis=1)
-        self.test = self.test.drop('education', axis=1)
+        self.train.drop('education', axis=1, inplace=True)
+        self.test.drop('education', axis=1, inplace=True)
 
         cat_features = ['workclass', 'education-num', 'marital-status', 'occupation', 'relationship', 'native-country', 'income', 'race', 'sex']
         self.encoders = dict()

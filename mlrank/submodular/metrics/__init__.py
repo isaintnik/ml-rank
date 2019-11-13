@@ -16,12 +16,12 @@ def log_likelihood_regularized_score_val(A, X_f, X_f_test, X_t, X_t_test, y, y_t
     return ll - _lambda * llcf
 
 
-def bic_regularized(A, X_f, X_f_test, X_t, X_t_test, y, y_test, decision_function, score):
-    pass
+def bic_regularized(A, X_f, X_f_test, X_t, X_t_test, y, y_test, decision_function):
+    return log_likelihood_bic(A, X_f, X_f_test, y, y_test, decision_function)
 
 
-def aic_regularized(A, X_f, X_f_test, X_t, X_t_test, y, y_test, decision_function, score):
-    pass
+def aic_regularized(A, X_f, X_f_test, X_t, X_t_test, y, y_test, decision_function):
+    return log_likelihood_aic(A, X_f, X_f_test, X_t, X_t_test, y, y_test, decision_function)
 
 
 def base_score(A, X_f, X_f_test, X_t, X_t_test, y, y_test, decision_function, score) -> float:

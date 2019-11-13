@@ -28,7 +28,7 @@ from mlrank.submodular.optimization.usm import (
     MultilinearUSMClassic
 )
 
-from mlrank.benchmarks.holdout import HoldoutBenchmark, DichtomizedHoldoutBenchmark
+from mlrank.benchmarks.holdout_bench import HoldoutBenchmark, DichtomizedHoldoutBenchmark
 
 # models
 from lightgbm import LGBMRegressor, LGBMClassifier
@@ -49,6 +49,9 @@ ADULT_TEST_PATH = './datasets/adult_test.csv'
 
 AMAZON_TRAIN_PATH = './datasets/amazon_train.csv'
 AMAZON_TEST_PATH = './datasets/amazon_test.csv'
+
+INTERNET_TRAIN_PATH = './datasets/internet_train.dat'
+INTERNET_TEST_PATH = './datasets/internet_train.dat'
 
 #ARRHYTHMIA_PATH = './datasets/arrhythmia.data'
 #FOREST_FIRE_PATH = './datasets/forestfires.csv'

@@ -12,12 +12,16 @@ from mlrank.submodular.optimization.optimizer import SubmodularOptimizer
 
 from functools import partial
 
+from mlrank.utils import split_dataset
+
 
 class MultilinearUSM(SubmodularOptimizer):
     def __init__(self,
                  threshold=.5,
                  me_eps=.1,
-                 n_jobs=1):
+                 n_jobs=1,
+                 n_cv=6,
+                 train_share=0.8):
         super().__init__()
 
         self.threshold = threshold
@@ -25,6 +29,11 @@ class MultilinearUSM(SubmodularOptimizer):
         self.me_eps = me_eps
 
         self.n_features = None
+        self.feature_list = None
+        self.n_cv = n_cv
+        self.train_share = train_share
+
+        self.seeds = [(42 + i) for i in range(self.n_cv)]
 
     def multiliear_extension(self, x) -> float:
         n_iterations = int(1 / (self.me_eps ** 2))
@@ -96,90 +105,16 @@ class MultilinearUSM(SubmodularOptimizer):
             x = x + a
             y = y - b
 
+            print(x)
+
         print(x)
         return np.where(x > self.threshold)[0].tolist()
 
     def score(self, A):
         raise NotImplementedError()
 
-    def select(self, X, y) -> list:
+    def select(self, X_plain: dict, X_transformed: dict, y: np.array) -> list:
         raise NotImplementedError()
-
-
-class MultilinearUSMClassic(MultilinearUSM):
-    def __init__(self,
-                 decision_function,
-                 score_function,
-                 n_bins=4,
-                 me_eps=.1,
-                 lambda_param=1,
-                 threshold=.5,
-                 n_jobs=1,
-                 n_cv=1,
-                 train_share=.6):
-        """
-
-        :param decision_function:
-        :param n_bins:
-        :param me_eps:
-        :param lambda_param:
-        :param type_of_problem:
-        :param n_jobs:
-        """
-        super().__init__(threshold=threshold, me_eps=me_eps, n_jobs=n_jobs)
-
-        self.n_bins = n_bins
-        self.decision_function = clone(decision_function)
-        self.score_function = score_function
-        self.n_cv = n_cv
-        self.train_share = train_share
-
-        #self.me_eps = me_eps
-        self.lambda_param = lambda_param
-
-        self.n_features = None
-        self._score_function = None
-
-        self.X = None
-        self.y = None
-
-        self.seeds = [(42 + i) for i in range(self.n_cv)]
-        print(me_eps, 'approximation requires', int(1. / (me_eps ** 2)), 'samples from categorical distribution.')
-
-    def score(self, A):
-        if not A:
-            return 0
-
-        X_s = self.X[:, A]
-        y = np.squeeze(self.y)
-
-        scores = list()
-
-        if self.n_cv > 1:
-            for i in range(self.n_cv):
-                X_train, X_test, y_train, y_test = train_test_split(
-                    X_s, y, random_state=self.seeds[i], shuffle=True, test_size=1 - self.train_share
-                )
-
-                model = clone(self.decision_function)
-                model.fit(X_train, y_train)
-                return self.score_function(model.predict(X_test), y_test)
-
-            return float(np.mean(scores))
-        else:
-            model = clone(self.decision_function)
-            model.fit(X_s, y)
-            return self.score_function(model.predict(X_s), y)
-
-    def select(self, X, y) -> list:
-        self.n_features = X.shape[1]
-
-        self.X = X
-        self.y = self.dichtomize_target(y, self.n_bins)
-        #self.score = partial(mutual_information_classification, X=X, y=y, decision_function=self.decision_function)
-        #self.penalty = partial(informational_regularization_classification, X_f=X, X_t=X_t, decision_function=self.decision_function)
-
-        return self.apply_usm()
 
 
 class MultilinearUSMExtended(MultilinearUSM):
@@ -189,7 +124,10 @@ class MultilinearUSMExtended(MultilinearUSM):
                  n_bins = 4,
                  me_eps = .1,
                  threshold = .5,
-                 n_jobs=1):
+                 n_jobs=1,
+                 n_cv=6,
+                 train_share=0.8
+                 ):
         """
 
         :param decision_function:
@@ -199,7 +137,7 @@ class MultilinearUSMExtended(MultilinearUSM):
         :param type_of_problem:
         :param n_jobs:
         """
-        super().__init__(threshold=threshold, me_eps=me_eps, n_jobs=n_jobs)
+        super().__init__(threshold=threshold, me_eps=me_eps, n_jobs=n_jobs, n_cv=n_cv, train_share=train_share)
 
         self.n_bins = n_bins
         self.decision_function = clone(decision_function)
@@ -213,20 +151,44 @@ class MultilinearUSMExtended(MultilinearUSM):
 
         print(me_eps, 'approximation requires', int(1. / (me_eps ** 2)), 'samples from categorical distribution.')
 
-    def score(self, A):
-        return self._score_function(A)
+    #def score(self, numeric_features: list):
+    #    return self._score_function([self.feature_list[f] for f in numeric_features])
 
-    def select(self, X, y) -> list:
+    def score(self, numeric_features: list) -> float:
+        scores = list()
+
+        for i in range(self.n_cv):
+            result = split_dataset(self.X_t, self.X_f, self.y, self.seeds[i], 1 - self.train_share)
+
+            scores.append(
+                self._score_function(
+                    A=[self.feature_list[f] for f in numeric_features],
+                    X_f=result['train']['transformed'],
+                    X_f_test=result['test']['transformed'],
+                    X_t=result['train']['plain'],
+                    X_t_test=result['test']['plain'],
+                    y=result['train']['target'],
+                    y_test=result['test']['target'],
+                )
+            )
+
+        return float(np.mean(scores))
+
+    def select(self, X_plain: dict, X_transformed: dict, y: np.array) -> list:
+        self.feature_list = list(X_plain.keys())
+        self.n_features = len(X_plain.keys())
+
         try:
-            self.X_f = X
-            self.X_t = self.dichtomize_features(X, self.n_bins)
+            self.X_f = X_transformed
+            self.X_t = self.dichtomize_features(X_plain, self.n_bins)
             self.y = self.dichtomize_target(y, self.n_bins)
         except Exception as e:
             print(e)
             raise DichtomizationIssue(self.n_bins)
 
-        self.n_features = X.shape[1]
-
-        self._score_function = partial(self.score_function, X_f=self.X_f, X_t=self.X_t, y=self.y, decision_function=self.decision_function)
+        self._score_function = partial(
+            self.score_function,
+            decision_function=self.decision_function
+        )
 
         return self.apply_usm()

@@ -10,9 +10,11 @@ class HoldoutDataset(DataSet):
 
         self.data = None
 
+    def load_from_folder(self):
+        raise NotImplementedError()
+
     def get_features(self, convert_to_linear: bool) -> dict:
         raise NotImplementedError()
 
     def get_target(self) -> np.array:
         raise NotImplementedError()
-

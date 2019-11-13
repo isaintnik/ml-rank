@@ -73,7 +73,6 @@ def log_likelihood_target(A, X_train, X_test, y_train, y_test, decision_function
     ll = 0
 
     if A:
-        print(A)
         X_train_m = make_features_matrix(X_train, A)
         X_test_m = make_features_matrix(X_test, A)
 
@@ -89,3 +88,13 @@ def log_likelihood_target(A, X_train, X_test, y_train, y_test, decision_function
         ll = np.mean(lls)
 
     return ll
+
+
+def log_likelihood_bic(A, X_train, X_test, y_train, y_test, decision_function, n_random_iter=20, eps_norm=1e-8):
+    return np.log(len(y_train)) * len(A) - 2 * \
+           log_likelihood_target(A, X_train, X_test, y_train, y_test, decision_function, n_random_iter, eps_norm)
+
+
+def log_likelihood_aic(A, X_train, X_test, y_train, y_test, decision_function, n_random_iter=20, eps_norm=1e-8):
+    return 2 * len(A) - 2 * \
+           log_likelihood_target(A, X_train, X_test, y_train, y_test, decision_function, n_random_iter, eps_norm)

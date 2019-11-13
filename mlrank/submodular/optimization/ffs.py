@@ -138,6 +138,7 @@ class ForwardFeatureSelectionClassic(ForwardFeatureSelection):
 
         return float(np.mean(scores))
 
+
 class ForwardFeatureSelectionExtended(ForwardFeatureSelection):
     def __init__(self,
                  decision_function,

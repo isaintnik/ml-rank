@@ -16,6 +16,9 @@ from itertools import product
 
 
 # TODO: not sure how this algorithm works, find it out or rewrite it
+from mlrank.utils import make_features_matrix
+
+
 def joint_entropy_score_estimate(subset, X):
     features = list()
     for i in subset:
@@ -54,101 +57,104 @@ def joint_entropy_score_exact(subset, X):
     return h
 
 
-def informational_regularization_classification(A, X_f, X_t, decision_function) -> float:
-    """
-    Returns R(X_A , X)
-    A -> X --> R(X_A, X) -> 0
-    R(X_A, X) := \sum_{f \in F} I(h_A, f)
-    :param A: indices of subset features
-    :param X_f: raw features
-    :param X_t: dichtomized features for classification task
-    :param decision_function: F:X -> C, C = vector of integers
-    :return: float
-    """
+#def informational_regularization_classification(A, X_f, X_t, decision_function) -> float:
+#    """
+#    Returns R(X_A , X)
+#    A -> X --> R(X_A, X) -> 0
+#    R(X_A, X) := \sum_{f \in F} I(h_A, f)
+#    :param A: indices of subset features
+#    :param X_f: raw features
+#    :param X_t: dichtomized features for classification task
+#    :param decision_function: F:X -> C, C = vector of integers
+#    :return: float
+#    """
+#
+#    # I(\emptyset, x) = 0
+#    if not A:
+#        return 0
+#
+#    infosum = list()
+#
+#    for i in range(X_f.shape[1]):
+#        model = clone(decision_function)
+#
+#        r = X_t[:, i]
+#
+#        if np.unique(r).shape[0] > 1:
+#            model.fit(X_f[:, A], r)
+#
+#            r_d = np.squeeze(r)
+#            p_d = np.squeeze(model.predict(X_f[:, A]))
+#        else:
+#            # constant model
+#            r_d = p_d = np.squeeze(r)
+#
+#        infosum.append(mutual_info_score(r_d, p_d))
+#
+#    return np.sum(infosum)
 
-    # I(\emptyset, x) = 0
-    if not A:
-        return 0
 
-    infosum = list()
+#def log_likelihood_cross_features(A, X_f, X_t, decision_function, n_random_iter=20, eps_norm = 1e-8) -> float:
+#    f_lls = list()
+#
+#    for i in range(X_f.shape[1]):
+#        model = clone(decision_function)
+#
+#        lencoder = LabelEncoder()
+#        decision_function = clone(decision_function)
+#
+#        y = X_t[:, i]
+#        y_arange = np.arange(y.size)
+#        y_labels = lencoder.fit_transform(y)
+#
+#        if A:
+#            if np.unique(y).shape[0] > 1:
+#                model.fit(X_f[:, A], y)
+#
+#                y_pred = model.predict_proba(X_f[:, A])
+#                ll = np.sum(np.log(y_pred[y_arange, np.squeeze(y_labels)] + eps_norm))
+#            else:
+#                # in case of constant model log likelihood = log(0) = 1
+#                ll = 0
+#        else:
+#            lls = list()
+#            for i in range(n_random_iter):
+#                y_pred = np.random.beta(1 / 2, 1 / 2, size=len(y))
+#                lls.append(np.sum(np.log(y_pred + eps_norm)))
+#            ll = np.mean(lls)
+#
+#        f_lls.append(ll)
+#
+#    return np.sum(f_lls)
 
-    for i in range(X_f.shape[1]):
-        model = clone(decision_function)
 
-        r = X_t[:, i]
-
-        if np.unique(r).shape[0] > 1:
-            model.fit(X_f[:, A], r)
-
-            r_d = np.squeeze(r)
-            p_d = np.squeeze(model.predict(X_f[:, A]))
-        else:
-            # constant model
-            r_d = p_d = np.squeeze(r)
-
-        infosum.append(mutual_info_score(r_d, p_d))
-
-    return np.sum(infosum)
-
-
-def log_likelihood_cross_features(A, X_f, X_t, decision_function, n_random_iter=20, eps_norm = 1e-8) -> float:
+def log_likelihood_cross_features(
+        A: list, X_f: dict, X_f_test: dict,
+        X_t: dict, X_t_test: dict,
+        decision_function,
+        n_random_iter=20, eps_norm = 1e-8
+) -> float:
     f_lls = list()
 
-    for i in range(X_f.shape[1]):
+    for i in X_t.keys():
         model = clone(decision_function)
-
-        lencoder = LabelEncoder()
         decision_function = clone(decision_function)
 
-        y = X_t[:, i]
-        y_arange = np.arange(y.size)
-        y_labels = lencoder.fit_transform(y)
+        #X_train_m = make_features_matrix(X_train, A)
 
-        if A:
-            if np.unique(y).shape[0] > 1:
-                model.fit(X_f[:, A], y)
-
-                y_pred = model.predict_proba(X_f[:, A])
-                ll = np.sum(np.log(y_pred[y_arange, np.squeeze(y_labels)] + eps_norm))
-            else:
-                # in case of constant model log likelihood = log(0) = 1
-                ll = 0
-        else:
-            lls = list()
-            for i in range(n_random_iter):
-                y_pred = np.random.beta(1 / 2, 1 / 2, size=len(y))
-                lls.append(np.sum(np.log(y_pred + eps_norm)))
-            ll = np.mean(lls)
-
-        f_lls.append(ll)
-
-    return np.sum(f_lls)
-
-
-def log_likelihood_cross_features_val(A, X_f, X_f_test, X_t, X_t_test, decision_function, n_random_iter=20, eps_norm = 1e-8) -> float:
-    f_lls = list()
-
-    X_t_full = np.vstack([X_t, X_t_test])
-
-    for i in range(X_f.shape[1]):
-        model = clone(decision_function)
-
-        lencoder = LabelEncoder()
-        decision_function = clone(decision_function)
-
-        y = X_t[:, i]
-        y_test = X_t_test[:, i]
-        lencoder.fit(X_t_full[:, i])
-
-        y_labels = lencoder.transform(y_test)
+        y = X_t[i]
+        y_test = X_t_test[i]
         y_arange = np.arange(y_test.size)
 
         if A:
             if np.unique(y).shape[0] > 1:
-                model.fit(X_f[:, A], y)
+                X_train = make_features_matrix(X_f, A)
+                X_test = make_features_matrix(X_f_test, A)
 
-                y_pred = model.predict_proba(X_f_test[:, A])
-                ll = np.sum(np.log(y_pred[y_arange, np.squeeze(y_labels)] + eps_norm))
+                model.fit(X_train, y)
+
+                y_pred = model.predict_proba(X_test)
+                ll = np.sum(np.log(y_pred[y_arange, np.squeeze(y_test)] + eps_norm))
             else:
                 # in case of constant model log likelihood = log(0) = 1
                 ll = 0
@@ -161,4 +167,4 @@ def log_likelihood_cross_features_val(A, X_f, X_f_test, X_t, X_t_test, decision_
 
         f_lls.append(ll)
 
-    return np.sum(f_lls)
+    return float(np.sum(f_lls))

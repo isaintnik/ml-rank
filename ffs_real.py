@@ -1,24 +1,22 @@
 import os
 import sys
 import warnings
-from sklearn.exceptions import ConvergenceWarning
-from sklearn.metrics import accuracy_score
+from functools import partial
 
-from mlrank.submodular.optimization.ffs import ForwardFeatureSelectionClassic
+from mlrank.preprocessing.dichtomizer import DichtomizationImpossible
+from mlrank.submodular.metrics import log_likelihood_regularized_score_val
+from mlrank.submodular.optimization.ffs import ForwardFeatureSelectionClassic, ForwardFeatureSelectionExtended
 
 if not sys.warnoptions:
     warnings.simplefilter("ignore")
     os.environ["PYTHONWARNINGS"] = "ignore" # Also affect subprocesses
 
 import numpy as np
-import pandas as pd
-
-from sklearn import clone
 from sklearn.externals import joblib
-
 from itertools import product
-
-from mlrank.benchmarks.holdout import HoldoutBenchmark, DichtomizedHoldoutBenchmark
+from mlrank.benchmarks.holdout import DichtomizedHoldoutBenchmark
+from mlrank.benchmarks.traintest import TrainTestBenchmark, DichtomizedTrainTestBenchmark
+from mlrank.datasets import (AdultDataSet, AmazonDataSet, BreastDataSet)
 
 # models
 from lightgbm import LGBMRegressor, LGBMClassifier
@@ -26,135 +24,31 @@ from sklearn.linear_model import LinearRegression, LogisticRegression, Lasso
 from sklearn.neural_network import MLPRegressor, MLPClassifier
 from sklearn.metrics import mutual_info_score
 
-from sklearn.preprocessing import LabelEncoder
-from sklearn.utils import shuffle
-
-
-class DataLoader(object):
-    @staticmethod
-    def load_data_breast_cancer(path):
-        # df = pd.read_csv('/Users/ppogorelov/Python/github/ml-rank/datasets/cancer/breast_cancer.csv')
-        #df = pd.read_csv(os.path.dirname(os.path.abspath(__file__)) + '/datasets/cancer/breast_cancer.csv')
-        df = pd.read_csv(path)
-
-        y = df.diagnosis.replace('M', 0).replace('B', 1).values
-        X = np.asarray(df.drop(['diagnosis', 'id', 'Unnamed: 32'], axis=1).values)
-
-        X, y = shuffle(X, y)
-
-        return X, y.reshape(-1, 1)
-
-    @staticmethod
-    def load_data_heart_desease(path):
-        df = pd.read_csv(
-            path,
-            sep=' ',
-            names=['ag','sex','cp','trestbps','chol','fbs','restecg','thalach','exang','oldpeak','slope','ca','thal','num',
-        ]).dropna()
-
-        y = df['num'].values
-        X = df[list(set(df.columns).difference(['num']))].values
-
-        X, y = shuffle(X, y)
-
-        return X, y.reshape(-1, 1)
-
-    @staticmethod
-    def load_data_forest_fire(path):
-        df = pd.read_csv(path).dropna()
-
-        df['month'] = LabelEncoder().fit_transform(df['month'])
-        df['day'] = LabelEncoder().fit_transform(df['day'])
-
-        #y1 = np.log(df['area'] + 1)
-        y = df['area'].values
-        X = df[list(set(df.columns).difference(['area']))].values
-
-        X, y = shuffle(X, y)
-
-        return X, y.reshape(-1, 1)
-
-    @staticmethod
-    def load_data_forest_fire_log(path):
-        df = pd.read_csv(path).dropna()
-
-        df['month'] = LabelEncoder().fit_transform(df['month'])
-        df['day'] = LabelEncoder().fit_transform(df['day'])
-
-        y = np.log(df['area'].values + 1)
-        X = df[list(set(df.columns).difference(['area']))].values
-
-        X, y = shuffle(X, y)
-
-        return X, y.reshape(-1, 1)
-
-    @staticmethod
-    def load_data_arrhythmia(path):
-        df = pd.read_csv(path, header=None).replace('?', np.nan)
-
-        valid_columns = df.columns[~(df.isna().sum(axis=0).sort_values(ascending=False) > 0).sort_index()]
-
-        X = df.loc[:, valid_columns].loc[:, df.columns[:-1]].values
-        y = df.loc[:, valid_columns].loc[:, df.columns[-1]].values
-
-        X, y = shuffle(X, y)
-
-        return X, y.reshape(-1, 1)
-
-    @staticmethod
-    def load_data_lung_cancer(path):
-        df = pd.read_csv(path, header=None).replace('?', np.nan)
-
-        valid_columns = df.columns[~(df.isna().sum(axis=0).sort_values(ascending=False) > 0).sort_index()]
-
-        X = df.loc[:, valid_columns].loc[:, 1:].values
-        y = df.loc[:, valid_columns].loc[:, 0].values
-
-        X, y = shuffle(X, y)
-
-        return X, y.reshape(-1, 1)
-
-    @staticmethod
-    def load_data_seizures(path):
-        df = pd.read_csv(path)
-
-        X = df[list(set(df.columns).difference(['y']))].values
-        y = df['y'].values
-
-        X, y = shuffle(X, y)
-
-        return X, y.reshape(-1, 1)
-
-
-#BREAST_CANCER_PATH = '../datasets/breast_cancer.csv'
-#ARRHYTHMIA_PATH = '../datasets/arrhythmia.data'
-#FOREST_FIRE_PATH = '../datasets/forestfires.csv'
-#HEART_DESEASE_PATH = '../datasets/reprocessed.hungarian.data'
-#SEIZURES_PATH = '../datasets/seizures.csv'
-#LUNG_CANCER_PATH = '../datasets/lung-cancer.data'
 
 BREAST_CANCER_PATH = './datasets/breast_cancer.csv'
-ARRHYTHMIA_PATH = './datasets/arrhythmia.data'
-FOREST_FIRE_PATH = './datasets/forestfires.csv'
-HEART_DESEASE_PATH = './datasets/reprocessed.hungarian.data'
-SEIZURES_PATH = './datasets/seizures.csv'
-LUNG_CANCER_PATH = './datasets/lung-cancer.data'
+
+ADULT_TRAIN_PATH = './datasets/adult_train.csv'
+ADULT_TEST_PATH = './datasets/adult_test.csv'
+
+AMAZON_TRAIN_PATH = './datasets/amazon_train.csv'
+AMAZON_TEST_PATH = './datasets/amazon_test.csv'
+
+#ARRHYTHMIA_PATH = './datasets/arrhythmia.data'
+#FOREST_FIRE_PATH = './datasets/forestfires.csv'
+#HEART_DESEASE_PATH = './datasets/reprocessed.hungarian.data'
+#SEIZURES_PATH = './datasets/seizures.csv'
+#LUNG_CANCER_PATH = './datasets/lung-cancer.data'
 
 # algorithm params
 ALGO_PARAMS = {
     'dataset': [
-        {'problem': 'classification', 'name': "lung_cancer", 'data': DataLoader.load_data_lung_cancer(LUNG_CANCER_PATH)},
-        {'problem': 'regression', 'name': "forest_fire", 'data': DataLoader.load_data_forest_fire(FOREST_FIRE_PATH)},
-        {'problem': 'regression', 'name': "forest_fire_log", 'data': DataLoader.load_data_forest_fire_log(FOREST_FIRE_PATH)},
-        {'problem': 'classification', 'name': "arrhythmia", 'data': DataLoader.load_data_arrhythmia(ARRHYTHMIA_PATH)},
-        {'problem': 'classification', 'name': "breast_cancer", 'data': DataLoader.load_data_breast_cancer(BREAST_CANCER_PATH)},
-        {'problem': 'classification', 'name': "heart_desease", 'data': DataLoader.load_data_heart_desease(HEART_DESEASE_PATH)},
-        {'problem': 'classification', 'name': "seizures", 'data': DataLoader.load_data_seizures(SEIZURES_PATH)} # pretty heavy
+        #{'type': 'holdout', 'problem': 'classification', 'name': "lung_cancer", 'data': BreastDataSet(BREAST_CANCER_PATH)},
+        #{'type': 'train_test', 'problem': 'classification', 'name': "adult", 'data': AdultDataSet(ADULT_TRAIN_PATH, ADULT_TEST_PATH)},
+        {'type': 'train_test', 'problem': 'classification', 'name': "amazon", 'data': AmazonDataSet(AMAZON_TRAIN_PATH, AMAZON_TEST_PATH)},
     ],
 
     'decision_function': [
-        {'regression': Lasso(),
-         'classification': LogisticRegression(multi_class='auto', solver='liblinear', penalty='l1', C=.1)},
+        {'regression': Lasso(), 'classification': LogisticRegression(multi_class='auto', solver='liblinear', penalty='l1', C=1000), 'type': 'linear'},
 #        {'regression': MLPRegressor(hidden_layer_sizes=(5, 5), activation='relu'),
 #         'classification': MLPClassifier(hidden_layer_sizes=(5, 5), activation='relu')},
 #        {'regression': LGBMRegressor(
@@ -183,11 +77,81 @@ ALGO_PARAMS = {
     ]
 }
 
-# hyperparameters
+
 HYPERPARAMS = {
-    'bins': [2, 4, 8, 16],
-    #'lambda': [.1, .3, .6, 1.]
+    'bins': [2, 4, 8],
+    'lambda': [.0, 0.001, 0.002, 0.003, 0.004, 0.005, 0.006, 0.007, 0.008, 0.009, 0.01]
 }
+
+
+def benchmark_holdout(dataset, decision_function, lambda_param, bins):
+    dataset['data'].load_from_folder()
+    dataset['data'].process_features()
+
+    X_plain = dataset['data'].get_features(False)
+    X_transformed = dataset['data'].get_features(True)
+    y = dataset['data'].get_target()
+
+    if bins >= y.size * feature_selection_share + 1:
+        print(key, bins, 'very small dataset for such dichtomization.')
+        raise DichtomizationImpossible(bins, int(y.size * feature_selection_share))
+
+    dfunc = decision_function['classification']
+    score_function = partial(log_likelihood_regularized_score_val, _lambda=lambda_param)    #score_function = partial(decision_function, _lambda=lambda_param)
+
+    bench = DichtomizedHoldoutBenchmark(
+        ForwardFeatureSelectionExtended(
+            decision_function=dfunc,
+            score_function=score_function,
+            n_bins=bins,
+            train_share=0.8,
+            n_cv_ffs=8,
+        ),
+        feature_selection_share=feature_selection_share,
+        decision_function=dfunc,
+        n_holdouts=70,
+        n_bins=bins,
+        n_jobs=1
+    )
+
+    return bench.benchmark(X_plain, X_transformed, y)
+
+
+def benchmark_train_test(dataset, decision_function, lambda_param, bins):
+    dataset['data'].load_train_from_file()
+    dataset['data'].load_test_from_file()
+    dataset['data'].process_features()
+
+    X_train_plain = dataset['data'].get_train_features(False)
+    X_train_transformed = dataset['data'].get_train_features(True)
+
+    X_test_plain = dataset['data'].get_test_features(False)
+    X_test_transformed = dataset['data'].get_test_features(True)
+
+    y_train = dataset['data'].get_train_target()
+    y_test = dataset['data'].get_test_target()
+
+    if bins >= y_train.size * feature_selection_share + 1:
+        print(key, bins, 'very small dataset for such dichtomization.')
+        raise DichtomizationImpossible(bins, int(y_train.size * feature_selection_share))
+
+    dfunc = decision_function['classification']
+    score_function = partial(log_likelihood_regularized_score_val,
+                             _lambda=lambda_param)
+
+    bench = DichtomizedTrainTestBenchmark(
+        optimizer=ForwardFeatureSelectionExtended(
+            decision_function=dfunc,
+            score_function=score_function,
+            n_bins=bins,
+            train_share=0.8,
+            n_cv_ffs=8,
+        ),
+        decision_function=dfunc,
+        n_bins=bins,
+    )
+
+    bench.benchmark(X_train_plain, X_train_transformed, y_train, X_test_plain, X_test_transformed, y_test)
 
 
 if __name__ == '__main__':
@@ -195,47 +159,34 @@ if __name__ == '__main__':
 
     feature_selection_share = .5
 
+    joblib.dump('test', "./data/testdoc.bin")
+
     results = {}
 
     for dataset, decision_function in product(ALGO_PARAMS['dataset'], ALGO_PARAMS['decision_function']):
-        dfunc = decision_function['classification']
-
+        dfunc = decision_function[dataset['problem']]
         key = "{}, {}".format(dataset['name'], dfunc.__class__.__name__)
-
         results[key] = list()
 
-        X, y = dataset['data']
+        print('>>', key)
 
-        #n_cv = int(min(max(3200/X.shape[0], 3), 100))
-
-        for bins in HYPERPARAMS['bins']:
-            if bins >= X.shape[0] * feature_selection_share:
-                print(key, bins, 'very small dataset for such dichtomization.')
+        for lambda_param, bins in product(HYPERPARAMS['lambda'], HYPERPARAMS['bins']):
+            predictions = None
+            try:
+                if dataset['type'] == 'holdout':
+                    predictions = benchmark_holdout(dataset, decision_function, lambda_param, bins)
+                elif dataset['type'] == 'train_test':
+                    predictions = benchmark_train_test(dataset, decision_function, lambda_param, bins)
+                else:
+                    print('unknown target type')
+            except DichtomizationImpossible as e:
+                print(str(e))
                 continue
 
-            for i in range(1, X.shape[1]):
-                bench = DichtomizedHoldoutBenchmark(
-                    ForwardFeatureSelectionClassic(
-                        decision_function=dfunc,
-                        score_function=mutual_info_score,
-                        train_share=.8,
-                        n_cv_ffs=6,
-                        n_features=i,
-                        n_bins=bins
-                    ),
-                    feature_selection_share=feature_selection_share,
-                    decision_function=dfunc,
-                    n_holdouts=100,
-                    n_jobs=8,
-                    n_bins=bins
-                )
+            results[key].append({
+                'bins': bins,
+                'lambda': lambda_param,
+                'result': predictions
+            })
 
-                predictions = bench.benchmark(X, y)
-
-                results[key].append({
-                    'bins': bins,
-                    'result': predictions,
-                    'n_features': i
-                })
-
-                joblib.dump(results, "./data/mlrank_realdata_ffs.bin")
+            joblib.dump(results, "./data/mlrank_realdata_usm_lik_full_5.bin")

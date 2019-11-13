@@ -28,10 +28,10 @@ warnings.filterwarnings('ignore')
 
 if __name__ == '__main__':
     np.random.seed(42)
-    n=100
+    n=200
     #data = LinearProblemGenerator.make_mc_uniform(n, np.array([2, 5, -3]), 2, 8)#(500, 10, 10, 5)
     #data = NonlinearProblemGenerator.make_nonlinear_relations_problem()
-    data = LinearProblemGenerator.make_normal_normal(n, coefs=np.array([2, 5, -3]), n_junk=4)  # (500, 10, 10, 5)
+    data = LinearProblemGenerator.make_normal_normal(n, coefs=np.array([2, 5, -3, -2]), n_junk=8)  # (500, 10, 10, 5)
 
     X = np.hstack(data['features'])
     y = data['target']
@@ -43,11 +43,11 @@ if __name__ == '__main__':
     #print(log_likelihood([0, 1], X, dichtomize_vector(y, 8), decision_function))
 
     for i in [2, 4, 8]:
-        for j in np.linspace(0, 1.0, 20):
+        for j in np.linspace(0, 1.0, 1):
             print(i, j)
             mplik = -n * (np.log(1./i))
             coef = 2 * i / mplik
-            #print(coef)
+            print(coef)
             score_function = partial(log_likelihood_regularized_score_val, _lambda=j)
 
             usm = ForwardFeatureSelectionExtended(

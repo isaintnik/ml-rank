@@ -1,7 +1,5 @@
 import numpy as np
 
-from sklearn import clone
-from sklearn.model_selection import train_test_split
 from sklearn.utils.multiclass import type_of_target
 
 from sklearn.externals.joblib import Parallel, delayed
@@ -9,73 +7,51 @@ from sklearn.externals.joblib import Parallel, delayed
 from mlrank.preprocessing.dichtomizer import MaxentropyMedianDichtomizationTransformer, map_continuous_names, \
     DichtomizationIssue
 from mlrank.submodular.optimization.optimizer import SubmodularOptimizer
+from mlrank.utils import split_dataset
+from .benchmark import Benchmark
 
 
-class HoldoutBenchmark(object):
-    def __init__(self, optimizer: SubmodularOptimizer, feature_selection_share: float, decision_function, n_holdouts: int, n_jobs: int):
+class HoldoutBenchmark(Benchmark):
+    def __init__(
+            self,
+            optimizer: SubmodularOptimizer,
+            feature_selection_share: float,
+            decision_function,
+            n_holdouts: int,
+            n_jobs: int
+    ):
         if feature_selection_share >= 1 or feature_selection_share <= 0:
             raise Exception('feature_selection_share should be in range (0, 1).')
 
-        self.optimizer=optimizer
+        super().__init__(optimizer, decision_function)
+
         self.feature_selection_share=feature_selection_share
-        self.decision_function=decision_function
         self.n_holdouts = n_holdouts
         self.n_jobs = n_jobs
 
-    #def predict_for_data(self, subset, X_complete, y_complete, X_val, y_val, X_test, y_test):
-    #    model = clone(self.decision_function)
-    #    model.fit(X_val[:, subset], np.squeeze(y_val))
-    #
-    #    return model.predict(X_test[:, subset]), y_test
-    #
-    #def split_dataset(self, X, y, seed) -> tuple:
-    #    X_complete, X_test, y_complete, y_test = train_test_split(
-    #        X, y, test_size=int(1), random_state=seed
-    #    )
-    #
-    #    X_f, X_val, y_f, y_val = train_test_split(
-    #        X_complete, y_complete, test_size=1.0 - self.feature_selection_share, random_state=seed
-    #    )
-    #
-    #    return X_complete, y_complete, X_f, y_f, X_val, y_val, X_test, y_test
+    def evaluate(self, X_plain, X_transformed, y, seed):
+        result = split_dataset(X_plain, X_transformed, y, seed, int(1))
+        subset = self.optimizer.select(result['train']['plain'], result['train']['transformed'], result['train']['target'])
 
-    def split_dataset(self, X, y, seed) -> tuple:
-        X_train, X_test, y_train, y_test = train_test_split(
-            X, y, test_size=int(1), random_state=seed
-        )
-
-        return X_train, y_train, X_test, y_test
-
-    def train_and_fit(self, subset, X_train, y_train, X_test, y_test):
-        if not subset:
-            return None
-
-        model = clone(self.decision_function)
-        model.fit(X_train[:, subset], np.squeeze(y_train))
-        return model.predict(X_test[:, subset])
-
-    def evaluate(self, X, y, seed):
-        print(seed - 42)
-        #X_complete, y_complete, X_f, y_f, X_val, y_val, X_test, y_test = self.split_dataset(X, y, seed)
-        #subset = self.optimizer.select(X_f, y_f)
-
-
-        #y_pred, y_test = self.predict_for_data(subset, X_complete, y_complete, X_val, y_val, X_test, y_test)
-
-        X_train, y_train, X_test, y_test = self.split_dataset(X, y, seed)
-        subset = self.optimizer.select(X_train, y_train)
-
-        y_pred = self.train_and_fit(subset, X_train, y_train, X_test, y_test)
+        y_pred = self.train_and_fit(subset, result['train']['transformed'], result['train']['target'], result['test']['target'])
 
         return {
-            'target': np.squeeze(y_test),
+            'target': np.squeeze(result['test']['target']),
             'pred': y_pred,
             'subset': subset
         }
 
-    def benchmark(self, X, y):
+    def benchmark(
+            self,
+            X_train_plain,
+            X_train_transformed,
+            y_train,
+            X_test_plain=None,
+            X_test_transformed=None,
+            y_test=None
+    ):
         results = Parallel(n_jobs=self.n_jobs)(
-            delayed(self.evaluate)(X, y, 42 + i)
+            delayed(self.evaluate)(X_train_plain, X_train_transformed, y_train, 42 + i)
             for i in range(self.n_holdouts)
         )
 
@@ -89,7 +65,15 @@ class HoldoutBenchmark(object):
 
 
 class DichtomizedHoldoutBenchmark(HoldoutBenchmark):
-    def __init__(self, optimizer: SubmodularOptimizer, feature_selection_share: float, decision_function, n_holdouts: int, n_jobs: int, n_bins: int):
+    def __init__(
+            self,
+            optimizer: SubmodularOptimizer,
+            feature_selection_share: float,
+            decision_function,
+            n_holdouts: int,
+            n_jobs: int,
+            n_bins: int
+    ):
         if not hasattr(decision_function, 'predict_proba'):
             raise Exception('decision function should have predict_proba attribute')
 
@@ -97,46 +81,22 @@ class DichtomizedHoldoutBenchmark(HoldoutBenchmark):
 
         self.n_bins = n_bins
 
-    #def predict_for_data(self, subset, X_complete, y_complete, X_train, y_train, X_test, y_test):
-    #    # TODO: include features from feature selection in testing procedure or not?
-    #
-    #    model = clone(self.decision_function)
-    #
-    #    print(y_complete)
-    #    print(y_train)
-    #
-    #    if type_of_target(y_complete) == 'continuous':
-    #        dichtomizer = MaxentropyMedianDichtomizationTransformer(n_splits = self.n_bins)
-    #        dichtomizer.fit(y_complete.reshape(-1, 1))
-    #
-    #        target = np.squeeze(dichtomizer.transform(y_train.reshape(-1, 1)))
-    #        model.fit(X_train[:, subset], np.squeeze(target))
-    #
-    #        pred = np.squeeze(model.predict(X_test[:, subset]))
-    #    else:
-    #        model.fit(X_train[:, subset], np.squeeze(y_train))
-    #
-    #        pred = np.squeeze(model.predict(X_test[:, subset]))
-    #
-    #    return pred, y_test
-
-    def evaluate(self, X, y, seed):
+    def evaluate(self, X_plain, X_transformed, y, seed):
         try:
-            #X_complete, y_complete, X_f, y_f, X_val, y_val, X_test, y_test = self.split_dataset(X, y, seed)
-            X_train, y_train, X_test, y_test = self.split_dataset(X, y, seed)
+            result = split_dataset(X_plain, X_transformed, y, seed, int(1))
 
             if type_of_target(y) == 'continuous':
                 dichtomizer = MaxentropyMedianDichtomizationTransformer(n_splits=self.n_bins)
-                dichtomizer.fit(y_train.reshape(-1, 1))
+                dichtomizer.fit(result['train']['target'].reshape(-1, 1))
 
-                y_train = dichtomizer.transform(y_train.reshape(-1, 1))
-                y_test = dichtomizer.transform(y_test.reshape(-1, 1))
+                y_train = dichtomizer.transform(result['train']['target'].reshape(-1, 1))
+                y_test = dichtomizer.transform(result['test']['target'].reshape(-1, 1))
+            else:
+                y_train = result['train']['target']
+                y_test = result['test']['target']
 
-            #subset = self.optimizer.select(X_f, y_f)
-            subset = self.optimizer.select(X_train, y_train)
-
-            #y_pred, y_test = self.predict_for_data(subset, X_complete, y_complete, X_val, y_val, X_test, y_test)
-            y_pred = self.train_and_fit(subset, X_train, y_train, X_test, y_test)
+            subset = self.optimizer.select(result['train']['plain'], result['train']['transformed'], y_train)
+            y_pred = self.train_and_fit(subset, result['train']['transformed'], y_train, result['test']['transformed'])
 
             return {
                 'target': np.squeeze(y_test),

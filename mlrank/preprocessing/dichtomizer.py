@@ -11,6 +11,11 @@ class DichtomizationIssue(Exception):
         super().__init__(f"dichtomization issue at {n_bins} splits.")
 
 
+class DichtomizationImpossible(Exception):
+    def __init__(self, n_bins, n_size):
+        super().__init__(f"dichtomization is impossible for {n_bins} splits and {n_size} obs.")
+
+
 class MaxentropyMedianDichtomizationTransformer(BaseEstimator, TransformerMixin):
     def __init__(self, n_splits, verbose=False):
         self.n_splits = n_splits

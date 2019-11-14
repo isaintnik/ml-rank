@@ -13,7 +13,13 @@ class TrainTestBenchmark(Benchmark):
         super().__init__(optimizer, decision_function)
 
     def evaluate(self, dataset: SeparatedDataset):
-        subset = self.optimizer.select(dataset)
+        subset = self.optimizer.select(
+            dataset.get_train_features(False),
+            dataset.get_train_features(True),
+            dataset.get_train_target(),
+            dataset.get_continuous_feature_names()
+        )
+
         y_pred = self.train_and_fit(
             subset,
             dataset.get_train_features(convert_to_linear=True),

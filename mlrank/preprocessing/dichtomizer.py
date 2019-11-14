@@ -216,21 +216,20 @@ def map_continuous_names(y, continuous_labels = None):
 def dichtomize_vector(y, n_bins, ordered=False):
     y = np.squeeze(y)
 
-    if type_of_target(y) == 'continuous':
-        splitter = MaxentropyMedianDichtomizationTransformer(n_bins)
-        y_unique = np.unique(y)
+    if type_of_target(y) == 'multiclass':
+        print('target could be multiclass!')
+    splitter = MaxentropyMedianDichtomizationTransformer(n_bins)
+    y_unique = np.unique(y)
 
-        if n_bins < y_unique.shape[0]:
-            splitter.fit(y.reshape(-1, 1))
-        else:
-            return np.array(map_continuous_names(y))
-
-        if ordered:
-            return np.squeeze(splitter.transform_ordered(y.reshape(-1, 1)))
-        else:
-            return np.squeeze(splitter.transform(y.reshape(-1, 1)))
+    if n_bins < y_unique.shape[0]:
+        splitter.fit(y.reshape(-1, 1))
     else:
-        return y
+        return np.array(map_continuous_names(y))
+
+    if ordered:
+        return np.squeeze(splitter.transform_ordered(y.reshape(-1, 1)))
+    else:
+        return np.squeeze(splitter.transform(y.reshape(-1, 1)))
 
 
 def dichtomize_matrix(X, n_bins, ordered=False):

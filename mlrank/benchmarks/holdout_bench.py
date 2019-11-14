@@ -1,11 +1,7 @@
 import numpy as np
 
-from sklearn.utils.multiclass import type_of_target
-
 from sklearn.externals.joblib import Parallel, delayed
 
-from mlrank.preprocessing.dichtomizer import MaxentropyMedianDichtomizationTransformer, map_continuous_names, \
-    DichtomizationIssue
 from mlrank.submodular.optimization.optimizer import SubmodularOptimizer
 from mlrank.utils import split_dataset
 from .benchmark import Benchmark

@@ -16,7 +16,7 @@ from itertools import product
 
 
 # TODO: not sure how this algorithm works, find it out or rewrite it
-from mlrank.utils import make_features_matrix
+from mlrank.utils import make_features_matrix, get_model_classification_order
 
 
 def joint_entropy_score_estimate(subset, X):
@@ -137,13 +137,14 @@ def log_likelihood_cross_features(
     f_lls = list()
 
     for i in X_t.keys():
+        print('->', i)
         model = clone(decision_function)
         decision_function = clone(decision_function)
 
         #X_train_m = make_features_matrix(X_train, A)
 
         y = X_t[i]
-        y_test = X_t_test[i]
+        y_test = np.copy(X_t_test[i])  # not optimal but dunno how to do a better way
         y_arange = np.arange(y_test.size)
 
         if A:
@@ -153,8 +154,17 @@ def log_likelihood_cross_features(
 
                 model.fit(X_train, y)
 
+                # map test values to indices to calc log likelihood
+                classes_ = get_model_classification_order(model)
+                if not np.array_equal(classes_, np.arange(len(classes_))):
+                    for i_, c_ in enumerate(classes_):
+                        y_test[y_test == c_] = -i_
+                    y_test *= -1
+
                 y_pred = model.predict_proba(X_test)
-                ll = np.sum(np.log(y_pred[y_arange, np.squeeze(y_test)] + eps_norm))
+
+                # log likelihood
+                ll = np.sum(np.log(y_pred[y_arange, np.squeeze(y_test)] + eps_norm)) # потенциальная ошибка
             else:
                 # in case of constant model log likelihood = log(0) = 1
                 ll = 0

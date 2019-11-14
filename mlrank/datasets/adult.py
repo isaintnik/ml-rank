@@ -15,20 +15,20 @@ class AdultDataSet(SeparatedDataset):
     def load_train_from_file(self):
         self.train = pd.read_csv(self.train_folder)
         self.train = self.train.sample(frac=1)
-        self.train.drop('Unnamed: 0', axis=1, inplace=True)
+        self.train.drop(['Unnamed: 0', 'native-country'], axis=1, inplace=True)
         self.train.dropna(inplace=True)
 
     def load_test_from_file(self):
         self.test = pd.read_csv(self.test_folder)
         self.test = self.test.sample(frac=1)
-        self.test.drop('Unnamed: 0', axis=1, inplace=True)
+        self.test.drop(['Unnamed: 0', 'native-country'], axis=1, inplace=True)
         self.test.dropna(inplace=True)
 
     def process_features(self):
         self.train.drop('education', axis=1, inplace=True)
         self.test.drop('education', axis=1, inplace=True)
 
-        cat_features = ['workclass', 'marital-status', 'occupation', 'relationship', 'native-country', 'income', 'race', 'sex']
+        cat_features = ['workclass', 'marital-status', 'occupation', 'relationship', 'income', 'race', 'sex']#, 'native-country']
         self.encoders = dict()
 
         encoders = dict()
@@ -40,8 +40,8 @@ class AdultDataSet(SeparatedDataset):
 
         self.features_ready = True
 
-        def get_continuous_feature_names(self):
-            return ['age', 'fnlwgt', 'capital-gain', 'capital-loss', 'hours-per-week', 'education-num']
+    def get_continuous_feature_names(self):
+        return ['age', 'fnlwgt', 'capital-gain', 'capital-loss', 'hours-per-week', 'education-num']
 
     def get_dummies(self, data_chunk: pd.DataFrame) -> dict:
         dummy_workclass = pd.get_dummies(data_chunk['workclass'])
@@ -51,7 +51,7 @@ class AdultDataSet(SeparatedDataset):
         dummy_relationship = pd.get_dummies(data_chunk['relationship'])
         dummy_race = pd.get_dummies(data_chunk['race'])
         dummy_sex = pd.get_dummies(data_chunk['sex'])
-        dummy_native_country = pd.get_dummies(data_chunk['native-country'])
+        #dummy_native_country = pd.get_dummies(data_chunk['native-country'])
 
         return {
             'age': data_chunk['age'].values.reshape(-1, 1),
@@ -66,7 +66,7 @@ class AdultDataSet(SeparatedDataset):
             'relationship': dummy_relationship.values,
             'race': dummy_race.values,
             'sex': dummy_sex.values,
-            'native-country': dummy_native_country.values
+            #'native-country': dummy_native_country.values
         }
 
     def cache_features(self):

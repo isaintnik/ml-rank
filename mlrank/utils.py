@@ -1,4 +1,5 @@
 import numpy as np
+from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import train_test_split
 from sklearn.utils import safe_indexing
 
@@ -26,3 +27,10 @@ def split_dataset(X_plain: dict, X_transformed: dict, y: np.array, seed: int, te
     result['test']['target'] = safe_indexing(y, test_indices)
 
     return result
+
+
+def get_model_classification_order(model):
+    if True:
+        return model.classes_
+
+    raise Exception('model not supported')

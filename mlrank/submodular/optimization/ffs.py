@@ -2,12 +2,9 @@ import numpy as np
 
 from sklearn.base import clone
 
-from sklearn.model_selection import train_test_split
-from sklearn.utils.multiclass import type_of_target
-
 from mlrank.preprocessing.dichtomizer import DichtomizationIssue
 from mlrank.submodular.optimization.optimizer import SubmodularOptimizer
-from mlrank.utils import make_features_matrix, split_dataset
+from mlrank.utils import split_dataset
 
 
 class ForwardFeatureSelection(SubmodularOptimizer):
@@ -65,6 +62,7 @@ class ForwardFeatureSelection(SubmodularOptimizer):
             feature_scores = list()
 
             for j in feature_names:
+                print(j)
                 if j in subset_logs:
                     feature_scores.append(-np.inf)
                     continue

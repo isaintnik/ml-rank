@@ -10,8 +10,14 @@ class AmazonDataSet(HoldoutDataset):
         self.cat_features = ['ACTION', 'RESOURCE', 'MGR_ID', 'ROLE_ROLLUP_1',
        'ROLE_ROLLUP_2', 'ROLE_DEPTNAME', 'ROLE_TITLE', 'ROLE_FAMILY_DESC',
        'ROLE_FAMILY', 'ROLE_CODE']
-        
+
+        self.train_plain = None
+        self.train_transformed = None
+
         self.encoders = dict()
+
+    def get_continuous_feature_names(self):
+        return []
 
     def load_from_folder(self):
         self.data = pd.read_csv(self.data_folder)
@@ -36,6 +42,10 @@ class AmazonDataSet(HoldoutDataset):
                 dummy_features[feature] = pd.get_dummies(data_chunk[feature]).values
 
         return dummy_features
+
+    def cache_features(self):
+        self.train_plain = dataframe_to_series_map(self.data[set(self.data.columns).difference({'ACTION'})])
+        self.train_transformed = self.get_dummies(self.data[set(self.data.columns).difference({'ACTION'})])
 
     def get_target(self) -> pd.Series:
         return self.data['ACTION'].values.reshape(-1, 1)

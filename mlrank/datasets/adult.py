@@ -7,6 +7,11 @@ class AdultDataSet(SeparatedDataset):
         super().__init__('adult', train_folder, test_folder)
         self.encoders = None
 
+        self.train_plain = None
+        self.train_transformed = None
+        self.test_plain = None
+        self.test_transformed = None
+
     def load_train_from_file(self):
         self.train = pd.read_csv(self.train_folder)
         self.train = self.train.sample(frac=1)
@@ -23,7 +28,7 @@ class AdultDataSet(SeparatedDataset):
         self.train.drop('education', axis=1, inplace=True)
         self.test.drop('education', axis=1, inplace=True)
 
-        cat_features = ['workclass', 'education-num', 'marital-status', 'occupation', 'relationship', 'native-country', 'income', 'race', 'sex']
+        cat_features = ['workclass', 'marital-status', 'occupation', 'relationship', 'native-country', 'income', 'race', 'sex']
         self.encoders = dict()
 
         encoders = dict()
@@ -35,9 +40,12 @@ class AdultDataSet(SeparatedDataset):
 
         self.features_ready = True
 
+        def get_continuous_feature_names(self):
+            return ['age', 'fnlwgt', 'capital-gain', 'capital-loss', 'hours-per-week', 'education-num']
+
     def get_dummies(self, data_chunk: pd.DataFrame) -> dict:
         dummy_workclass = pd.get_dummies(data_chunk['workclass'])
-        dummy_education_num = pd.get_dummies(data_chunk['education-num'])
+        #dummy_education_num = pd.get_dummies(data_chunk['education-num'])
         dummy_marital_status = pd.get_dummies(data_chunk['marital-status'])
         dummy_occupation = pd.get_dummies(data_chunk['occupation'])
         dummy_relationship = pd.get_dummies(data_chunk['relationship'])
@@ -51,8 +59,8 @@ class AdultDataSet(SeparatedDataset):
             'capital-gain': data_chunk['capital-gain'].values.reshape(-1, 1),
             'capital-loss': data_chunk['capital-loss'].values.reshape(-1, 1),
             'hours-per-week': data_chunk['hours-per-week'].values.reshape(-1, 1),
+            'education-num': data_chunk['education-num'].values.reshape(-1, 1),
             'workclass': dummy_workclass.values,
-            'education-num': dummy_education_num.values,
             'marital-status': dummy_marital_status.values,
             'occupation': dummy_occupation.values,
             'relationship': dummy_relationship.values,
@@ -60,6 +68,13 @@ class AdultDataSet(SeparatedDataset):
             'sex': dummy_sex.values,
             'native-country': dummy_native_country.values
         }
+
+    def cache_features(self):
+        self.train_plain = dataframe_to_series_map(self.train[set(self.train.columns).difference({'income'})])
+        self.train_transformed = self.get_dummies(self.train[set(self.train.columns).difference({'income'})])
+
+        self.test_plain = dataframe_to_series_map(self.test[set(self.test.columns).difference({'income'})])
+        self.test_transformed = self.get_dummies(self.test[set(self.test.columns).difference({'income'})])
 
     def get_test_target(self) -> pd.Series:
         return self.test['income'].values
@@ -72,15 +87,15 @@ class AdultDataSet(SeparatedDataset):
             raise Exception('call process_features')
 
         if not convert_to_linear:
-            return dataframe_to_series_map(self.train[set(self.train.columns).difference({'income'})])
+            return self.train_plain
         else:
-            return self.get_dummies(self.train[set(self.train.columns).difference({'income'})])
+            return self.train_transformed
 
     def get_test_features(self, convert_to_linear: bool) -> dict:
         if not self.features_ready:
             raise Exception('call process_features')
 
         if not convert_to_linear:
-            return dataframe_to_series_map(self.test[set(self.test.columns).difference({'income'})])
+            return self.test_plain
         else:
-            return self.get_dummies(self.test[set(self.test.columns).difference({'income'})])
+            return self.test_transformed

@@ -42,10 +42,10 @@ class ForwardFeatureSelection(SubmodularOptimizer):
     def evaluate_new_feature(self, prev_subset, new_feature, X_f, X_t, y) -> float:
         raise NotImplementedError()
 
-    def select(self, X_plain: dict, X_transformed: dict, y: np.array) -> list:
+    def select(self, X_plain: dict, X_transformed: dict, y: np.array, continuous_feature_list: list) -> list:
         try:
             X_f = X_transformed
-            X_t = self.dichtomize_features(X_plain, self.n_bins)
+            X_t = self.dichtomize_features(X_plain, self.n_bins, continuous_feature_list)
             y = self.dichtomize_target(y, self.n_bins)
         except Exception as e:
             print(e)
@@ -91,54 +91,6 @@ class ForwardFeatureSelection(SubmodularOptimizer):
         return self.logs
 
 
-class ForwardFeatureSelectionClassic(ForwardFeatureSelection):
-    def __init__(self,
-                 decision_function,
-                 score_function,
-                 train_share: float = 1.0,
-                 n_bins: int = 4,
-                 n_features: int = -1,
-                 n_cv_ffs: int = 1
-        ):
-        """
-        Perform greedy algorithm of feature selection ~ O(n_features ** 2)
-        :param decision_function: decision function to be evaluated
-        :param score_function: score function for submodular optimization
-        :param train_share: share of data to be trained on
-        :param n_cv_ffs: number of CV's, 1 = evaluate on training set
-        :param n_bins: only used for continuous targets
-        """
-        super().__init__(
-            decision_function,
-            score_function,
-            train_share,
-            n_bins,
-            n_features,
-            n_cv_ffs
-        )
-
-    def _evaluate_model(self, X_train, y_train, X_test, y_test, model) -> float:
-        model.fit(X_train, y_train)
-        return self.score_function(model.predict(X_test), y_test)
-
-    def _evaluate_new_feature(self, prev_subset, new_feature, X_f, X_t, y) -> float:
-        A = prev_subset + [new_feature]
-        scores = list()
-
-        for i in range(self.n_cv_ffs):
-            X_f_df = make_features_matrix(X_f, A)
-            X_t_df = make_features_matrix(X_t, A)
-
-            X_f_train, X_f_test, X_t_train, X_t_test, y_train, y_test = train_test_split(
-                X_f_df, X_t_df, y, random_state=self.seeds[i], shuffle=True, test_size=1 - self.train_share
-            )
-
-            model = clone(self.decision_function)
-            scores.append(self._evaluate_model(X_f_train, y_train, X_f_test, y_test, model))
-
-        return float(np.mean(scores))
-
-
 class ForwardFeatureSelectionExtended(ForwardFeatureSelection):
     def __init__(self,
                  decision_function,
@@ -171,10 +123,6 @@ class ForwardFeatureSelectionExtended(ForwardFeatureSelection):
 
         for i in range(self.n_cv_ffs):
             result = split_dataset(X_t, X_f, y, self.seeds[i], 1 - self.train_share)
-
-            #X_f_train, X_f_test, X_t_train, X_t_test, y_train, y_test = train_test_split(
-            #    X_f_df, X_t_df, y, random_state=self.seeds[i], shuffle=True, test_size=1 - self.train_share
-            #)
 
             scores.append(
                 self.score_function(

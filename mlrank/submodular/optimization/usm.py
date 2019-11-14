@@ -113,7 +113,7 @@ class MultilinearUSM(SubmodularOptimizer):
     def score(self, A):
         raise NotImplementedError()
 
-    def select(self, X_plain: dict, X_transformed: dict, y: np.array) -> list:
+    def select(self, X_plain: dict, X_transformed: dict, y: np.array, continuous_feature_list: list) -> list:
         raise NotImplementedError()
 
 
@@ -174,13 +174,13 @@ class MultilinearUSMExtended(MultilinearUSM):
 
         return float(np.mean(scores))
 
-    def select(self, X_plain: dict, X_transformed: dict, y: np.array) -> list:
+    def select(self, X_plain: dict, X_transformed: dict, y: np.array, continuous_feature_list: list) -> list:
         self.feature_list = list(X_plain.keys())
         self.n_features = len(X_plain.keys())
 
         try:
             self.X_f = X_transformed
-            self.X_t = self.dichtomize_features(X_plain, self.n_bins)
+            self.X_t = self.dichtomize_features(X_plain, self.n_bins, continuous_feature_list)
             self.y = self.dichtomize_target(y, self.n_bins)
         except Exception as e:
             print(e)

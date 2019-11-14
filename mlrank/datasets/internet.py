@@ -69,6 +69,9 @@ class InternetDataSet(SeparatedDataset):
 
         self.encoders = dict()
 
+    def get_continuous_feature_names(self):
+        return ['Age']
+
     def load_train_from_file(self):
         self.train = pd.read_csv(self.train_folder)
         self.train.drop(subset=['who'], axis=1, inplace=True)
@@ -103,6 +106,13 @@ class InternetDataSet(SeparatedDataset):
 
         return dummy_features
 
+    def cache_features(self):
+        self.train_plain = dataframe_to_series_map(self.train[set(self.train.columns).difference({'Willingness_to_Pay_Fees'})])
+        self.train_transformed = self.get_dummies(self.train[set(self.train.columns).difference({'Willingness_to_Pay_Fees'})])
+
+        self.test_plain = dataframe_to_series_map(self.test[set(self.test.columns).difference({'Willingness_to_Pay_Fees'})])
+        self.test_transformed = self.get_dummies(self.test[set(self.test.columns).difference({'Willingness_to_Pay_Fees'})])
+
     def get_train_target(self) -> pd.Series:
         return self.train['Willingness_to_Pay_Fees'].values.reshape(-1, 1)
 
@@ -114,15 +124,15 @@ class InternetDataSet(SeparatedDataset):
             raise Exception('call process_features')
 
         if not convert_to_linear:
-            return dataframe_to_series_map(self.train[set(self.train.columns).difference({'Willingness_to_Pay_Fees'})])
+            return self.train_plain
         else:
-            return self.get_dummies(self.train[set(self.train.columns).difference({'Willingness_to_Pay_Fees'})])
+            return self.train_transformed
 
     def get_test_features(self, convert_to_linear: bool) -> dict:
         if not self.features_ready:
             raise Exception('call process_features')
 
         if not convert_to_linear:
-            return dataframe_to_series_map(self.test[set(self.test.columns).difference({'Willingness_to_Pay_Fees'})])
+            return self.test_plain
         else:
-            return self.get_dummies(self.test[set(self.test.columns).difference({'Willingness_to_Pay_Fees'})])
+            return self.test_transformed

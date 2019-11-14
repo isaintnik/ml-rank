@@ -6,8 +6,7 @@ from functools import partial
 from mlrank.datasets.internet import InternetDataSet
 from mlrank.preprocessing.dichtomizer import DichtomizationImpossible
 from mlrank.submodular.metrics import log_likelihood_regularized_score_val, log_likelihood_bic, bic_regularized
-from mlrank.submodular.optimization.ffs import ForwardFeatureSelectionClassic, ForwardFeatureSelectionExtended
-from mlrank.submodular.optimization.usm import MultilinearUSMExtended
+from mlrank.submodular.optimization import ForwardFeatureSelectionExtended, MultilinearUSMExtended
 
 if not sys.warnoptions:
     warnings.simplefilter("ignore")
@@ -16,8 +15,8 @@ if not sys.warnoptions:
 import numpy as np
 from sklearn.externals import joblib
 from itertools import product
-from mlrank.benchmarks.holdout_bench import DichtomizedHoldoutBenchmark
-from mlrank.benchmarks.traintest_bench import TrainTestBenchmark, DichtomizedTrainTestBenchmark
+from mlrank.benchmarks.holdout_bench import HoldoutBenchmark
+from mlrank.benchmarks.traintest_bench import TrainTestBenchmark
 from mlrank.datasets import (AdultDataSet, AmazonDataSet, BreastDataSet)
 
 # models
@@ -45,9 +44,9 @@ INTERNET_TEST_PATH = './datasets/internet_test.dat'
 # algorithm params
 ALGO_PARAMS = {
     'dataset': [
-        #{'type': 'holdout', 'problem': 'classification', 'name': "breast_cancer", 'data': BreastDataSet(BREAST_CANCER_PATH)},
+        {'type': 'holdout', 'problem': 'classification', 'name': "breast_cancer", 'data': BreastDataSet(BREAST_CANCER_PATH)},
         #{'type': 'holdout', 'problem': 'classification', 'name': "amazon", 'data': AmazonDataSet(AMAZON_PATH)},
-        {'type': 'train_test', 'problem': 'classification', 'name': "adult", 'data': AdultDataSet(ADULT_TRAIN_PATH, ADULT_TEST_PATH)},
+        #{'type': 'train_test', 'problem': 'classification', 'name': "adult", 'data': AdultDataSet(ADULT_TRAIN_PATH, ADULT_TEST_PATH)},
         #{'type': 'train_test', 'problem': 'classification', 'name': "internet", 'data': InternetDataSet(INTERNET_TRAIN_PATH, INTERNET_TEST_PATH)},
     ],
 
@@ -91,20 +90,17 @@ HYPERPARAMS = {
 def benchmark_holdout(dataset, decision_function, lambda_param, bins):
     dataset['data'].load_from_folder()
     dataset['data'].process_features()
+    dataset['data'].cache_features()
 
-    X_plain = dataset['data'].get_features(False)
-    X_transformed = dataset['data'].get_features(True)
-    y = dataset['data'].get_target()
-
-    if bins >= y.size * feature_selection_share + 1:
+    if bins >= dataset['data'].get_target().size * feature_selection_share + 1:
         print(key, bins, 'very small dataset for such dichtomization.')
-        raise DichtomizationImpossible(bins, int(y.size * feature_selection_share))
+        raise DichtomizationImpossible(bins, int(dataset['data'].get_target().size * feature_selection_share))
 
     dfunc = decision_function['classification']
     score_function = partial(log_likelihood_regularized_score_val, _lambda=lambda_param)    #score_function = partial(decision_function, _lambda=lambda_param)
     #score_function = bic_regularized
 
-    bench = DichtomizedHoldoutBenchmark(
+    bench = HoldoutBenchmark(
         ForwardFeatureSelectionExtended(
             decision_function=dfunc,
             score_function=score_function,
@@ -122,26 +118,19 @@ def benchmark_holdout(dataset, decision_function, lambda_param, bins):
         feature_selection_share=feature_selection_share,
         decision_function=dfunc,
         n_holdouts=70,
-        n_bins=bins,
         n_jobs=1
     )
 
-    return bench.benchmark(X_plain, X_transformed, y)
+    return bench.benchmark(dataset['data'])
 
 
 def benchmark_train_test(dataset, decision_function, lambda_param, bins):
     dataset['data'].load_train_from_file()
     dataset['data'].load_test_from_file()
     dataset['data'].process_features()
-
-    X_train_plain = dataset['data'].get_train_features(False)
-    X_train_transformed = dataset['data'].get_train_features(True)
-
-    X_test_plain = dataset['data'].get_test_features(False)
-    X_test_transformed = dataset['data'].get_test_features(True)
+    dataset['data'].cache_features()
 
     y_train = dataset['data'].get_train_target()
-    y_test = dataset['data'].get_test_target()
 
     if bins >= y_train.size * feature_selection_share + 1:
         print(key, bins, 'very small dataset for such dichtomization.')
@@ -151,7 +140,7 @@ def benchmark_train_test(dataset, decision_function, lambda_param, bins):
     score_function = partial(log_likelihood_regularized_score_val,
                              _lambda=lambda_param)
 
-    bench = DichtomizedTrainTestBenchmark(
+    bench = TrainTestBenchmark(
         optimizer=ForwardFeatureSelectionExtended(
             decision_function=dfunc,
             score_function=score_function,
@@ -159,11 +148,10 @@ def benchmark_train_test(dataset, decision_function, lambda_param, bins):
             train_share=0.8,
             n_cv_ffs=8,
         ),
-        decision_function=dfunc,
-        n_bins=bins,
+        decision_function=dfunc
     )
 
-    bench.benchmark(X_train_plain, X_train_transformed, y_train, X_test_plain, X_test_transformed, y_test)
+    bench.benchmark(dataset['data'])
 
 
 if __name__ == '__main__':

@@ -5,6 +5,8 @@ from mlrank.preprocessing.dichtomizer import (
     dichtomize_matrix,
 )
 
+from mlrank.datasets.dataset import DataSet
+
 
 class SubmodularOptimizer(object):
     """
@@ -14,15 +16,19 @@ class SubmodularOptimizer(object):
     def __init__(self):
         pass
 
-    def dichtomize_features(self, X: dict, n_bins) -> dict:
+    def dichtomize_features(self, X: dict, n_bins, continuous_feature_list: list) -> dict:
         #return dichtomize_matrix(X, n_bins=n_bins, ordered=False)
         new_features = dict()
         for k, v in X.items():
-            new_features[k] = dichtomize_vector(v, n_bins=n_bins, ordered=False)
+            if k in continuous_feature_list:
+                new_features[k] = dichtomize_vector(v, n_bins=n_bins, ordered=False)
         return new_features
 
     def dichtomize_target(self, y: dict, n_bins) -> np.array:
         return dichtomize_vector(y, n_bins=n_bins, ordered=False)
 
-    def select(self, X_plain: dict, X_transformed:dict,  y: np.array) -> list:
+    #def select(self, X_plain: dict, X_transformed:dict,  y: np.array, continuous_feature_list: list) -> list:
+    #    raise NotImplementedError()
+
+    def select(self, X_plain: dict, X_transformed: dict, y: np.array, continuous_feature_list: list) -> list:
         raise NotImplementedError()

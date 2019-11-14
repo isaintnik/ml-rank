@@ -144,8 +144,6 @@ def log_likelihood_cross_features(
 
         y = X_t[i]
         y_test = X_t_test[i]
-
-        print(y_test)
         y_arange = np.arange(y_test.size)
 
         if A:

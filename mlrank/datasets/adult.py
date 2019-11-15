@@ -1,4 +1,5 @@
 import pandas as pd
+import numpy as np
 from mlrank.datasets.dataset import SeparatedDataset, dataframe_to_series_map, fit_encoder
 
 
@@ -35,8 +36,8 @@ class AdultDataSet(SeparatedDataset):
         for feature in cat_features:
             encoders[feature] = fit_encoder(pd.concat([self.train[feature], self.test[feature]]))
 
-            self.train[feature] = encoders[feature].transform(self.train[feature])
-            self.test[feature] = encoders[feature].transform(self.test[feature])
+            self.train[feature] = np.squeeze(encoders[feature].transform(self.train[feature]))
+            self.test[feature] = np.squeeze(encoders[feature].transform(self.test[feature]))
 
         self.features_ready = True
 
@@ -54,18 +55,18 @@ class AdultDataSet(SeparatedDataset):
         #dummy_native_country = pd.get_dummies(data_chunk['native-country'])
 
         return {
-            'age': data_chunk['age'].values.reshape(-1, 1),
-            'fnlwgt': data_chunk['fnlwgt'].values.reshape(-1, 1),
-            'capital-gain': data_chunk['capital-gain'].values.reshape(-1, 1),
-            'capital-loss': data_chunk['capital-loss'].values.reshape(-1, 1),
-            'hours-per-week': data_chunk['hours-per-week'].values.reshape(-1, 1),
-            'education-num': data_chunk['education-num'].values.reshape(-1, 1),
-            'workclass': dummy_workclass.values,
-            'marital-status': dummy_marital_status.values,
-            'occupation': dummy_occupation.values,
-            'relationship': dummy_relationship.values,
-            'race': dummy_race.values,
-            'sex': dummy_sex.values,
+            'age': data_chunk['age'].values,
+            'fnlwgt': data_chunk['fnlwgt'].values,
+            'capital-gain': data_chunk['capital-gain'].values,
+            'capital-loss': data_chunk['capital-loss'].values,
+            'hours-per-week': data_chunk['hours-per-week'].values,
+            'education-num': data_chunk['education-num'].values,
+            'workclass': dummy_workclass.values.T,
+            'marital-status': dummy_marital_status.values.T,
+            'occupation': dummy_occupation.values.T,
+            'relationship': dummy_relationship.values.T,
+            'race': dummy_race.values.T,
+            'sex': dummy_sex.values.T,
             #'native-country': dummy_native_country.values
         }
 
@@ -77,10 +78,10 @@ class AdultDataSet(SeparatedDataset):
         self.test_transformed = self.get_dummies(self.test[set(self.test.columns).difference({'income'})])
 
     def get_test_target(self) -> pd.Series:
-        return self.test['income'].values
+        return self.test['income'].values#.reshape(-1, 1)
 
     def get_train_target(self) -> pd.Series:
-        return self.train['income'].values
+        return self.train['income'].values#.reshape(-1, 1)
 
     def get_train_features(self, convert_to_linear: bool) -> dict:
         if not self.features_ready:

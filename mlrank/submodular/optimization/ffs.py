@@ -62,16 +62,17 @@ class ForwardFeatureSelection(SubmodularOptimizer):
             feature_scores = list()
 
             for j in feature_names:
-                print(j)
+                print(subset + [j])
+
                 if j in subset_logs:
                     feature_scores.append(-np.inf)
-                    continue
-
-                feature_scores.append(self.evaluate_new_feature(subset, j, X_f, X_t, y))
+                else:
+                    feature_scores.append(self.evaluate_new_feature(subset, j, X_f, X_t, y))
 
             top_feature = int(np.argmax(feature_scores))  # np.atleast_1d(np.squeeze(np.argmax(feature_scores)))[0]
 
             if np.max(feature_scores) > prev_top_score or self.n_features < len(X_plain.keys()):
+                print(feature_scores)
                 subset.append(feature_names[top_feature])
                 prev_top_score = np.max(feature_scores)
             else:

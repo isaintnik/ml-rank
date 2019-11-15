@@ -97,12 +97,12 @@ class InternetDataSet(SeparatedDataset):
 
         for feature in self.cat_features:
             if feature != 'ACTION':
-                dummy_features[feature] = pd.get_dummies(data_chunk[feature]).values
+                dummy_features[feature] = pd.get_dummies(data_chunk[feature]).values.T
 
         dummy_features.update({'Age': data_chunk['Age']})
 
         for feature in self.bin_features:
-            dummy_features.update({feature: data_chunk[feature]})
+            dummy_features.update({feature: data_chunk[feature].values})
 
         return dummy_features
 
@@ -114,10 +114,10 @@ class InternetDataSet(SeparatedDataset):
         self.test_transformed = self.get_dummies(self.test[set(self.test.columns).difference({'Willingness_to_Pay_Fees'})])
 
     def get_train_target(self) -> pd.Series:
-        return self.train['Willingness_to_Pay_Fees'].values.reshape(-1, 1)
+        return self.train['Willingness_to_Pay_Fees'].values
 
     def get_test_target(self) -> np.array:
-        return self.test['Willingness_to_Pay_Fees'].values.reshape(-1, 1)
+        return self.test['Willingness_to_Pay_Fees'].values
 
     def get_train_features(self, convert_to_linear: bool) -> dict:
         if not self.features_ready:

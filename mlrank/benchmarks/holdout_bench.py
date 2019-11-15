@@ -39,7 +39,7 @@ class HoldoutBenchmark(Benchmark):
             subset,
             result['train']['transformed'],
             result['train']['target'],
-            result['test']['target']
+            result['test']['transformed']
         )
 
         return {

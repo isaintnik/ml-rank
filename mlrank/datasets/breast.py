@@ -54,7 +54,7 @@ class BreastDataSet(HoldoutDataset):
         self.features_ready = True
 
     def cache_features(self):
-        self.train_plain = dataframe_to_series_map(self.data[set(self.data.columns).difference('diagnosis')])
+        self.train_plain = dataframe_to_series_map(self.data[set(self.data.columns).difference({'diagnosis'})])
 
     def get_features(self, convert_to_linear: bool):
         # dataset is linear anyway

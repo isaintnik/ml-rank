@@ -26,16 +26,6 @@ from sklearn.neural_network import MLPRegressor, MLPClassifier
 from sklearn.metrics import mutual_info_score
 
 
-BREAST_CANCER_PATH = './datasets/breast_cancer.csv'
-AMAZON_PATH = './datasets/amazon_train.csv'
-
-ADULT_TRAIN_PATH = './datasets/adult_train.csv'
-ADULT_TEST_PATH = './datasets/adult_test.csv'
-
-INTERNET_TRAIN_PATH = './datasets/internet_train.dat'
-INTERNET_TEST_PATH = './datasets/internet_test.dat'
-
-
 def benchmark_holdout(dataset, decision_function, lambda_param, bins):
     dataset['data'].load_from_folder()
     dataset['data'].process_features()
@@ -55,7 +45,7 @@ def benchmark_holdout(dataset, decision_function, lambda_param, bins):
             score_function=score_function,
             n_bins=bins,
             train_share=0.8,
-            n_cv_ffs=8,
+            n_cv_ffs=1,
         ),
         #MultilinearUSMExtended(
         #    decision_function=dfunc,
@@ -95,7 +85,7 @@ def benchmark_train_test(dataset, decision_function, lambda_param, bins):
             score_function=score_function,
             n_bins=bins,
             train_share=0.8,
-            n_cv_ffs=8,
+            n_cv_ffs=1,
         ),
         decision_function=dfunc
     )
@@ -108,19 +98,28 @@ def benchmark_train_test(dataset, decision_function, lambda_param, bins):
 #SEIZURES_PATH = './datasets/seizures.csv'
 #LUNG_CANCER_PATH = './datasets/lung-cancer.data'
 
+BREAST_CANCER_PATH = './datasets/breast_cancer.csv'
+AMAZON_PATH = './datasets/amazon_train.csv'
+
+ADULT_TRAIN_PATH = './datasets/adult_train.csv'
+ADULT_TEST_PATH = './datasets/adult_test.csv'
+
+INTERNET_TRAIN_PATH = './datasets/internet_train.dat'
+INTERNET_TEST_PATH = './datasets/internet_test.dat'
+
 # algorithm params
 ALGO_PARAMS = {
     'dataset': [
-        #{'type': 'holdout', 'problem': 'classification', 'name': "breast_cancer", 'data': BreastDataSet(BREAST_CANCER_PATH)},
-        #{'type': 'holdout', 'problem': 'classification', 'name': "amazon", 'data': AmazonDataSet(AMAZON_PATH)},
+        {'type': 'holdout', 'problem': 'classification', 'name': "breast_cancer", 'data': BreastDataSet(BREAST_CANCER_PATH)},
+        {'type': 'holdout', 'problem': 'classification', 'name': "amazon", 'data': AmazonDataSet(AMAZON_PATH)},
         {'type': 'train_test', 'problem': 'classification', 'name': "adult", 'data': AdultDataSet(ADULT_TRAIN_PATH, ADULT_TEST_PATH)},
-        #{'type': 'train_test', 'problem': 'classification', 'name': "internet", 'data': InternetDataSet(INTERNET_TRAIN_PATH, INTERNET_TEST_PATH)},
+        {'type': 'train_test', 'problem': 'classification', 'name': "internet", 'data': InternetDataSet(INTERNET_TRAIN_PATH, INTERNET_TEST_PATH)},
     ],
 
     'decision_function': [
-        {'regression': Lasso(), 'classification': LogisticRegression(multi_class='auto', solver='liblinear', penalty='l1', C=1000), 'type': 'linear'},
-#        {'regression': MLPRegressor(hidden_layer_sizes=(5, 5), activation='relu'),
-#         'classification': MLPClassifier(hidden_layer_sizes=(5, 5), activation='relu')},
+#        {'regression': Lasso(), 'classification': LogisticRegression(multi_class='auto', solver='liblinear', penalty='l1', C=1000), 'type': 'linear'},
+        {'regression': MLPRegressor(hidden_layer_sizes=(3, 3), activation='relu'),
+         'classification': MLPClassifier(hidden_layer_sizes=(3, 3), activation='relu')},
 #        {'regression': LGBMRegressor(
 #                boosting_type='rf',
 #                learning_rate=1e-2,
@@ -150,7 +149,7 @@ ALGO_PARAMS = {
 
 HYPERPARAMS = {
     'bins': [2, 4, 8],
-    'lambda': [.0, 0.001, 0.002, 0.003, 0.004, 0.005, 0.006, 0.007, 0.008, 0.009, 0.01]
+    'lambda': [0.0, 0.002, 0.003, 0.004, 0.005, 0.006, 0.007, 0.008, 0.009, 0.01]
 }
 
 

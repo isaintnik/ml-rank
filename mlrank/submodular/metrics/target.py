@@ -4,7 +4,7 @@ from sklearn.preprocessing import OneHotEncoder, LabelEncoder
 from sklearn.utils.multiclass import type_of_target
 from sklearn.base import clone
 
-from mlrank.utils import make_features_matrix
+from mlrank.utils import make_features_matrix, get_model_classification_order, fix_target
 
 
 #def mutual_information_classification(A, X, y, decision_function):
@@ -64,13 +64,10 @@ def log_likelihood_target(A, X_train, X_test, y_train, y_test, decision_function
     if target_type not in ['binary', 'multiclass']:
         raise Exception(target_type, 'not supported.')
 
-    lencoder = LabelEncoder()
     decision_function = clone(decision_function)
-
-    y_test_arange = np.arange(len(np.squeeze(y_test)))
-    lencoder.fit(np.vstack([y_train.reshape(-1, 1), y_test.reshape(-1, 1)]))
-    y_test_labels = lencoder.transform(y_test)
     ll = 0
+
+    y_test = np.copy(y_test)
 
     if A:
         X_train_m = make_features_matrix(X_train, A)
@@ -78,7 +75,12 @@ def log_likelihood_target(A, X_train, X_test, y_train, y_test, decision_function
 
         decision_function.fit(X_train_m, y_train)
         y_pred = decision_function.predict_proba(X_test_m)
-        ll = np.sum(np.log(y_pred[y_test_arange, np.squeeze(y_test_labels)] + eps_norm))
+
+        # map test values to indices to calc log likelihood
+        classes_ = get_model_classification_order(decision_function)
+        y_test, y_pred = fix_target(classes_, y_test, y_pred)
+
+        ll = np.sum(np.log(y_pred[np.arange(y_test.size), np.squeeze(y_test)] + eps_norm))
     else:
 
         lls = list()

@@ -39,7 +39,7 @@ class AmazonDataSet(HoldoutDataset):
 
         for feature in self.cat_features:
             if feature != 'ACTION':
-                dummy_features[feature] = pd.get_dummies(data_chunk[feature]).values
+                dummy_features[feature] = pd.get_dummies(data_chunk[feature]).values.T
 
         return dummy_features
 

@@ -39,8 +39,6 @@ class HoldoutBenchmark(Benchmark):
             result['test']['transformed']
         )
 
-        print(y_pred, np.squeeze(result['test']['target']))
-
         return {
             'target': np.squeeze(result['test']['target']),
             'pred': y_pred,

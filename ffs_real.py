@@ -20,10 +20,13 @@ from mlrank.benchmarks.traintest_bench import TrainTestBenchmark
 from mlrank.datasets import (AdultDataSet, AmazonDataSet, BreastDataSet)
 
 # models
-from lightgbm import LGBMRegressor, LGBMClassifier
-from sklearn.linear_model import LinearRegression, LogisticRegression, Lasso
+from sklearn.linear_model import LogisticRegression, Lasso
 from sklearn.neural_network import MLPRegressor, MLPClassifier
-from sklearn.metrics import mutual_info_score
+
+from config import (
+    ALGO_PARAMS,
+    HYPERPARAMS
+)
 
 
 def benchmark_holdout(dataset, decision_function, lambda_param, bins):
@@ -45,8 +48,8 @@ def benchmark_holdout(dataset, decision_function, lambda_param, bins):
             score_function=score_function,
             n_bins=bins,
             train_share=0.9,
-            n_cv_ffs=6,
-            n_jobs=1
+            n_cv_ffs=8,
+            n_jobs=4
         ),
         #MultilinearUSMExtended(
         #    decision_function=dfunc,
@@ -56,14 +59,14 @@ def benchmark_holdout(dataset, decision_function, lambda_param, bins):
         #    n_cv=8,
         #),
         decision_function=dfunc,
-        n_holdouts=100,
-        n_jobs=10
+        n_holdouts=80,
+        n_jobs=6
     )
 
     return bench.benchmark(dataset['data'])
 
 
-def benchmark_train_test(dataset, decision_function, lambda_param, bins):
+def benchmark_train_test(dataset, decision_function, lambda_param, bins, df_jobs=4):
     dataset['data'].load_train_from_file()
     dataset['data'].load_test_from_file()
     dataset['data'].process_features()
@@ -76,6 +79,7 @@ def benchmark_train_test(dataset, decision_function, lambda_param, bins):
         raise DichtomizationImpossible(bins, int(y_train.size * 0.8))
 
     dfunc = decision_function['classification']
+    dfunc.n_jobs = df_jobs
     score_function = partial(log_likelihood_regularized_score_val,
                              _lambda=lambda_param)
 
@@ -84,8 +88,9 @@ def benchmark_train_test(dataset, decision_function, lambda_param, bins):
             decision_function=dfunc,
             score_function=score_function,
             n_bins=bins,
-            train_share=0.8,
+            train_share=0.9,
             n_cv_ffs=8,
+            n_jobs=8
         ),
         decision_function=dfunc
     )
@@ -98,65 +103,6 @@ def benchmark_train_test(dataset, decision_function, lambda_param, bins):
 #SEIZURES_PATH = './datasets/seizures.csv'
 #LUNG_CANCER_PATH = './datasets/lung-cancer.data'
 
-BREAST_CANCER_PATH = './datasets/breast_cancer.csv'
-AMAZON_PATH = './datasets/amazon_train.csv'
-
-ADULT_TRAIN_PATH = './datasets/adult_train.csv'
-ADULT_TEST_PATH = './datasets/adult_test.csv'
-
-INTERNET_TRAIN_PATH = './datasets/internet_train.dat'
-INTERNET_TEST_PATH = './datasets/internet_test.dat'
-
-# algorithm params
-ALGO_PARAMS = {
-    'dataset': [
-        {'type': 'holdout', 'problem': 'classification', 'name': "breast_cancer", 'data': BreastDataSet(BREAST_CANCER_PATH)},
-        {'type': 'train_test', 'problem': 'classification', 'name': "adult", 'data': AdultDataSet(ADULT_TRAIN_PATH, ADULT_TEST_PATH)},
-        {'type': 'train_test', 'problem': 'classification', 'name': "internet", 'data': InternetDataSet(INTERNET_TRAIN_PATH, INTERNET_TEST_PATH)},
-        {'type': 'holdout', 'problem': 'classification', 'name': "amazon", 'data': AmazonDataSet(AMAZON_PATH)},
-    ],
-
-    'decision_function': [
-        {'regression': Lasso(),
-         'classification': LogisticRegression(
-             multi_class='auto', solver='liblinear', penalty='l1', C=1000, n_jobs=4
-         ), 'type': 'linear'},
-        {'regression': MLPRegressor(hidden_layer_sizes=(3, 3), activation='relu'),
-         'classification': MLPClassifier(hidden_layer_sizes=(3, 3), activation='relu'),
-         'type': 'mlp'},
-        #{'regression': LGBMRegressor(
-        #        boosting_type='rf',
-        #        learning_rate=1e-2,
-        #        max_depth=5,
-        #        subsample=0.7,
-        #        n_estimators=200,
-        #        verbose=-1,
-        #        subsample_freq=5,
-        #        num_leaves=2**5,
-        #        silent=True
-        #    ),
-        #'classification': LGBMClassifier(
-        #        boosting_type='rf',
-        #        learning_rate=1e-2,
-        #        max_depth=5,
-        #        subsample=0.7,
-        #        n_estimators=200,
-        #        verbose=-1,
-        #        subsample_freq=5,
-        #        num_leaves=2 ** 5,
-        #        silent=True
-        #    ),
-        #'type': 'gbdt'
-        #}
-    ]
-}
-
-
-HYPERPARAMS = {
-    'bins': [2, 4, 8],
-    'lambda': [0.0, 0.003, 0.005, 0.007, 0.01, 0.02, 0.03, 0.05, 0.1]
-}
-
 
 if __name__ == '__main__':
     np.random.seed(42)
@@ -166,9 +112,6 @@ if __name__ == '__main__':
     results = {}
 
     for dataset, decision_function in product(ALGO_PARAMS['dataset'], ALGO_PARAMS['decision_function']):
-        if dataset['name'] != 'adult':
-            continue
-
         dfunc = decision_function[dataset['problem']]
         key = "{}, {}".format(dataset['name'], dfunc.__class__.__name__)
         results[key] = list()
@@ -176,6 +119,8 @@ if __name__ == '__main__':
         print('>>', key)
 
         for lambda_param, bins in product(HYPERPARAMS['lambda'], HYPERPARAMS['bins']):
+            print('>> >>', lambda_param, bins)
+
             predictions = None
             try:
                 if dataset['type'] == 'holdout':
@@ -194,4 +139,4 @@ if __name__ == '__main__':
                 'result': predictions
             })
 
-            joblib.dump(results, "./data/mlrank_realdata_usm_lik_full_6.bin")
+            joblib.dump(results, f"./data/{dataset['name']}.bin")

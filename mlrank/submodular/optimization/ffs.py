@@ -1,4 +1,5 @@
 import numpy as np
+from joblib import Parallel, delayed
 
 from sklearn.base import clone
 
@@ -14,7 +15,8 @@ class ForwardFeatureSelection(SubmodularOptimizer):
                  train_share: float = 1.0,
                  n_bins: int = 4,
                  n_features: int = -1,
-                 n_cv_ffs: int = 1
+                 n_cv_ffs: int = 1,
+                 n_jobs=-1
                  ):
         """
         Perform greedy algorithm of feature selection ~ O(n_features ** 2)
@@ -33,6 +35,7 @@ class ForwardFeatureSelection(SubmodularOptimizer):
         self.train_share = train_share
         self.n_features = n_features
         self.logs = None
+        self.n_jobs = n_jobs
 
         self.seeds = [(42 + i) for i in range(self.n_cv_ffs)]
 
@@ -81,8 +84,6 @@ class ForwardFeatureSelection(SubmodularOptimizer):
                 'subset': np.copy(subset_logs).tolist(),
                 'score': np.max(feature_scores)
             })
-
-            print(self.logs[-1])
         return subset
 
     def get_logs(self):
@@ -120,13 +121,9 @@ class ForwardFeatureSelectionExtended(ForwardFeatureSelection):
     def evaluate_new_feature(self, prev_subset: list, new_feature, X_f: dict, X_t: dict, y: np.array) -> float:
         A = prev_subset + [new_feature]
         scores = list()
-
-        # TODO: use joblib
-        for i in range(self.n_cv_ffs):
-            result = split_dataset(X_t, X_f, y, self.seeds[i], 1 - self.train_share)
-
-            scores.append(
-                self.score_function(
+        if self.n_jobs > 1:
+            scores = Parallel(n_jobs=self.n_jobs)(
+                delayed(self.score_function)(
                     A=A,
                     X_f=result['train']['transformed'],
                     X_f_test=result['test']['transformed'],
@@ -136,6 +133,24 @@ class ForwardFeatureSelectionExtended(ForwardFeatureSelection):
                     y_test=result['test']['target'],
                     decision_function=self.decision_function
                 )
+                for result in (
+                    split_dataset(X_t, X_f, y, self.seeds[i], 1 - self.train_share)
+                    for i in range(self.n_cv_ffs)
+                )
             )
+        else:
+            for i in range(self.n_cv_ffs):
+                result = split_dataset(X_t, X_f, y, self.seeds[i], 1 - self.train_share)
+
+                scores.append(self.score_function(
+                    A=A,
+                    X_f=result['train']['transformed'],
+                    X_f_test=result['test']['transformed'],
+                    X_t=result['train']['plain'],
+                    X_t_test=result['test']['plain'],
+                    y=result['train']['target'],
+                    y_test=result['test']['target'],
+                    decision_function=self.decision_function
+                ))
 
         return float(np.mean(scores))

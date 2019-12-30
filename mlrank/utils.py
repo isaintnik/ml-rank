@@ -48,5 +48,5 @@ def fix_target(classes_, target_: np.array, pred_: np.array):
             target_[target_ == c_] = -i_
         target_ *= -1
 
-    return safe_indexing(target_, np.where(target_ >= 0)), safe_indexing(pred_, np.where(target_ >= 0))
+    return safe_indexing(target_, np.where(target_ >= 0)[0]), safe_indexing(pred_, np.where(target_ >= 0)[0])
     #return target_, pred_

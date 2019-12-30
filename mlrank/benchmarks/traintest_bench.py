@@ -27,6 +27,8 @@ class TrainTestBenchmark(Benchmark):
             dataset.get_test_features(convert_to_linear=True)
         )
 
+        print(np.abs((np.squeeze(dataset.get_test_target()) - y_pred)).sum(), y_pred.shape)
+
         return {
             'target': np.squeeze(dataset.get_test_target()),
             'pred': y_pred,

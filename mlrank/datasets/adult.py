@@ -1,6 +1,6 @@
 import pandas as pd
 import numpy as np
-from mlrank.datasets.dataset import SeparatedDataset, dataframe_to_series_map, fit_encoder
+from mlrank.datasets.dataset import SeparatedDataset, dataframe_to_series_map, fit_encoder, get_features_except
 
 
 class AdultDataSet(SeparatedDataset):
@@ -71,11 +71,11 @@ class AdultDataSet(SeparatedDataset):
         }
 
     def cache_features(self):
-        self.train_plain = dataframe_to_series_map(self.train[set(self.train.columns).difference({'income'})])
-        self.train_transformed = self.get_dummies(self.train[set(self.train.columns).difference({'income'})])
+        self.train_plain = dataframe_to_series_map(get_features_except(self.train, ['income']))
+        self.train_transformed = self.get_dummies(get_features_except(self.train, ['income']))
 
-        self.test_plain = dataframe_to_series_map(self.test[set(self.test.columns).difference({'income'})])
-        self.test_transformed = self.get_dummies(self.test[set(self.test.columns).difference({'income'})])
+        self.test_plain = dataframe_to_series_map(get_features_except(self.test, ['income']))
+        self.test_transformed = self.get_dummies(get_features_except(self.test, ['income']))
 
     def get_test_target(self) -> pd.Series:
         return self.test['income'].values#.reshape(-1, 1)

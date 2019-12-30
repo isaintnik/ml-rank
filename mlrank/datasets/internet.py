@@ -1,7 +1,7 @@
 import pandas as pd
 import numpy as np
 
-from mlrank.datasets.dataset import dataframe_to_series_map, fit_encoder, SeparatedDataset
+from mlrank.datasets.dataset import dataframe_to_series_map, fit_encoder, SeparatedDataset, get_features_except
 
 
 class InternetDataSet(SeparatedDataset):
@@ -107,11 +107,11 @@ class InternetDataSet(SeparatedDataset):
         return dummy_features
 
     def cache_features(self):
-        self.train_plain = dataframe_to_series_map(self.train[set(self.train.columns).difference({'Willingness_to_Pay_Fees'})])
-        self.train_transformed = self.get_dummies(self.train[set(self.train.columns).difference({'Willingness_to_Pay_Fees'})])
+        self.train_plain = dataframe_to_series_map(get_features_except(self.train, ['Willingness_to_Pay_Fees']))
+        self.train_transformed = self.get_dummies(get_features_except(self.train, ['Willingness_to_Pay_Fees']))
 
-        self.test_plain = dataframe_to_series_map(self.test[set(self.test.columns).difference({'Willingness_to_Pay_Fees'})])
-        self.test_transformed = self.get_dummies(self.test[set(self.test.columns).difference({'Willingness_to_Pay_Fees'})])
+        self.test_plain = dataframe_to_series_map(get_features_except(self.test, ['Willingness_to_Pay_Fees']))
+        self.test_transformed = self.get_dummies(get_features_except(self.test, ['Willingness_to_Pay_Fees']))
 
     def get_train_target(self) -> pd.Series:
         return self.train['Willingness_to_Pay_Fees'].values

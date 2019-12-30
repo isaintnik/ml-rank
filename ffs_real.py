@@ -31,9 +31,9 @@ def benchmark_holdout(dataset, decision_function, lambda_param, bins):
     dataset['data'].process_features()
     dataset['data'].cache_features()
 
-    if bins >= dataset['data'].get_target().size * feature_selection_share + 1:
+    if bins >= dataset['data'].get_target().size * 0.8 + 1:
         print(key, bins, 'very small dataset for such dichtomization.')
-        raise DichtomizationImpossible(bins, int(dataset['data'].get_target().size * feature_selection_share))
+        raise DichtomizationImpossible(bins, int(dataset['data'].get_target().size * 0.8))
 
     dfunc = decision_function['classification']
     score_function = partial(log_likelihood_regularized_score_val, _lambda=lambda_param)    #score_function = partial(decision_function, _lambda=lambda_param)
@@ -44,8 +44,9 @@ def benchmark_holdout(dataset, decision_function, lambda_param, bins):
             decision_function=dfunc,
             score_function=score_function,
             n_bins=bins,
-            train_share=0.8,
-            n_cv_ffs=1,
+            train_share=0.9,
+            n_cv_ffs=6,
+            n_jobs=1
         ),
         #MultilinearUSMExtended(
         #    decision_function=dfunc,
@@ -54,10 +55,9 @@ def benchmark_holdout(dataset, decision_function, lambda_param, bins):
         #    train_share=0.8,
         #    n_cv=8,
         #),
-        feature_selection_share=feature_selection_share,
         decision_function=dfunc,
-        n_holdouts=70,
-        n_jobs=1
+        n_holdouts=100,
+        n_jobs=10
     )
 
     return bench.benchmark(dataset['data'])
@@ -71,9 +71,9 @@ def benchmark_train_test(dataset, decision_function, lambda_param, bins):
 
     y_train = dataset['data'].get_train_target()
 
-    if bins >= y_train.size * feature_selection_share + 1:
+    if bins >= y_train.size * 0.8 + 1:
         print(key, bins, 'very small dataset for such dichtomization.')
-        raise DichtomizationImpossible(bins, int(y_train.size * feature_selection_share))
+        raise DichtomizationImpossible(bins, int(y_train.size * 0.8))
 
     dfunc = decision_function['classification']
     score_function = partial(log_likelihood_regularized_score_val,
@@ -85,7 +85,7 @@ def benchmark_train_test(dataset, decision_function, lambda_param, bins):
             score_function=score_function,
             n_bins=bins,
             train_share=0.8,
-            n_cv_ffs=1,
+            n_cv_ffs=8,
         ),
         decision_function=dfunc
     )
@@ -111,58 +111,64 @@ INTERNET_TEST_PATH = './datasets/internet_test.dat'
 ALGO_PARAMS = {
     'dataset': [
         {'type': 'holdout', 'problem': 'classification', 'name': "breast_cancer", 'data': BreastDataSet(BREAST_CANCER_PATH)},
-        {'type': 'holdout', 'problem': 'classification', 'name': "amazon", 'data': AmazonDataSet(AMAZON_PATH)},
         {'type': 'train_test', 'problem': 'classification', 'name': "adult", 'data': AdultDataSet(ADULT_TRAIN_PATH, ADULT_TEST_PATH)},
         {'type': 'train_test', 'problem': 'classification', 'name': "internet", 'data': InternetDataSet(INTERNET_TRAIN_PATH, INTERNET_TEST_PATH)},
+        {'type': 'holdout', 'problem': 'classification', 'name': "amazon", 'data': AmazonDataSet(AMAZON_PATH)},
     ],
 
     'decision_function': [
-#        {'regression': Lasso(), 'classification': LogisticRegression(multi_class='auto', solver='liblinear', penalty='l1', C=1000), 'type': 'linear'},
+        {'regression': Lasso(),
+         'classification': LogisticRegression(
+             multi_class='auto', solver='liblinear', penalty='l1', C=1000, n_jobs=4
+         ), 'type': 'linear'},
         {'regression': MLPRegressor(hidden_layer_sizes=(3, 3), activation='relu'),
-         'classification': MLPClassifier(hidden_layer_sizes=(3, 3), activation='relu')},
-#        {'regression': LGBMRegressor(
-#                boosting_type='rf',
-#                learning_rate=1e-2,
-#                max_depth=5,
-#                subsample=0.7,
-#                n_estimators=200,
-#                verbose=-1,
-#                subsample_freq=5,
-#                num_leaves=2**5,
-#                silent=True
-#            ),
-#        'classification': LGBMClassifier(
-#                boosting_type='rf',
-#                learning_rate=1e-2,
-#                max_depth=5,
-#                subsample=0.7,
-#                n_estimators=200,
-#                verbose=-1,
-#                subsample_freq=5,
-#                num_leaves=2 ** 5,
-#                silent=True
-#            )
-#        }
+         'classification': MLPClassifier(hidden_layer_sizes=(3, 3), activation='relu'),
+         'type': 'mlp'},
+        #{'regression': LGBMRegressor(
+        #        boosting_type='rf',
+        #        learning_rate=1e-2,
+        #        max_depth=5,
+        #        subsample=0.7,
+        #        n_estimators=200,
+        #        verbose=-1,
+        #        subsample_freq=5,
+        #        num_leaves=2**5,
+        #        silent=True
+        #    ),
+        #'classification': LGBMClassifier(
+        #        boosting_type='rf',
+        #        learning_rate=1e-2,
+        #        max_depth=5,
+        #        subsample=0.7,
+        #        n_estimators=200,
+        #        verbose=-1,
+        #        subsample_freq=5,
+        #        num_leaves=2 ** 5,
+        #        silent=True
+        #    ),
+        #'type': 'gbdt'
+        #}
     ]
 }
 
 
 HYPERPARAMS = {
     'bins': [2, 4, 8],
-    'lambda': [0.0, 0.002, 0.003, 0.004, 0.005, 0.006, 0.007, 0.008, 0.009, 0.01]
+    'lambda': [0.0, 0.003, 0.005, 0.007, 0.01, 0.02, 0.03, 0.05, 0.1]
 }
 
 
 if __name__ == '__main__':
     np.random.seed(42)
 
-    feature_selection_share = .5
-
     joblib.dump('test', "./data/testdoc.bin")
 
     results = {}
 
     for dataset, decision_function in product(ALGO_PARAMS['dataset'], ALGO_PARAMS['decision_function']):
+        if dataset['name'] != 'adult':
+            continue
+
         dfunc = decision_function[dataset['problem']]
         key = "{}, {}".format(dataset['name'], dfunc.__class__.__name__)
         results[key] = list()
@@ -188,4 +194,4 @@ if __name__ == '__main__':
                 'result': predictions
             })
 
-            joblib.dump(results, "./data/mlrank_realdata_usm_lik_full_5.bin")
+            joblib.dump(results, "./data/mlrank_realdata_usm_lik_full_6.bin")

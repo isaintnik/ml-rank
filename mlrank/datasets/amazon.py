@@ -1,6 +1,7 @@
 import pandas as pd
 
-from mlrank.datasets.dataset import dataframe_to_series_map, fit_encoder, SeparatedDataset, HoldoutDataset
+from mlrank.datasets.dataset import dataframe_to_series_map, fit_encoder, SeparatedDataset, HoldoutDataset, \
+    get_features_except
 
 
 class AmazonDataSet(HoldoutDataset):
@@ -44,8 +45,8 @@ class AmazonDataSet(HoldoutDataset):
         return dummy_features
 
     def cache_features(self):
-        self.train_plain = dataframe_to_series_map(self.data[set(self.data.columns).difference({'ACTION'})])
-        self.train_transformed = self.get_dummies(self.data[set(self.data.columns).difference({'ACTION'})])
+        self.train_plain = dataframe_to_series_map(get_features_except(self.data, ['ACTION']))
+        self.train_transformed = self.get_dummies(get_features_except(self.data, ['ACTION']))
 
     def get_target(self) -> pd.Series:
         return self.data['ACTION'].values.reshape(-1, 1)
@@ -55,6 +56,6 @@ class AmazonDataSet(HoldoutDataset):
             raise Exception('call process_features')
 
         if not convert_to_linear:
-            return dataframe_to_series_map(self.data[set(self.data.columns).difference({'ACTION'})])
+            return self.train_plain
         else:
-            return self.get_dummies(self.data[set(self.data.columns).difference({'ACTION'})])
+            return self.train_transformed

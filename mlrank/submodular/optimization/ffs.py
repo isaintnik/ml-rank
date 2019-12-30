@@ -62,8 +62,6 @@ class ForwardFeatureSelection(SubmodularOptimizer):
             feature_scores = list()
 
             for j in feature_names:
-                print(subset + [j])
-
                 if j in subset_logs:
                     feature_scores.append(-np.inf)
                 else:
@@ -72,7 +70,6 @@ class ForwardFeatureSelection(SubmodularOptimizer):
             top_feature = int(np.argmax(feature_scores))  # np.atleast_1d(np.squeeze(np.argmax(feature_scores)))[0]
 
             if np.max(feature_scores) > prev_top_score or self.n_features < len(X_plain.keys()):
-                print(feature_scores)
                 subset.append(feature_names[top_feature])
                 prev_top_score = np.max(feature_scores)
             else:
@@ -84,6 +81,8 @@ class ForwardFeatureSelection(SubmodularOptimizer):
                 'subset': np.copy(subset_logs).tolist(),
                 'score': np.max(feature_scores)
             })
+
+            print(self.logs[-1])
         return subset
 
     def get_logs(self):
@@ -97,7 +96,8 @@ class ForwardFeatureSelectionExtended(ForwardFeatureSelection):
                  train_share: float = 1.0,
                  n_bins: int = 4,
                  n_features: int = -1,
-                 n_cv_ffs: int = 1
+                 n_cv_ffs: int = 1,
+                 n_jobs: int = -1,
                  ):
         """
         Perform greedy algorithm of feature selection ~ O(n_features ** 2)
@@ -113,13 +113,15 @@ class ForwardFeatureSelectionExtended(ForwardFeatureSelection):
             train_share,
             n_bins,
             n_features,
-            n_cv_ffs
+            n_cv_ffs,
+            n_jobs
         )
 
     def evaluate_new_feature(self, prev_subset: list, new_feature, X_f: dict, X_t: dict, y: np.array) -> float:
         A = prev_subset + [new_feature]
         scores = list()
 
+        # TODO: use joblib
         for i in range(self.n_cv_ffs):
             result = split_dataset(X_t, X_f, y, self.seeds[i], 1 - self.train_share)
 

@@ -1,5 +1,5 @@
 import pandas as pd
-from mlrank.datasets.dataset import HoldoutDataset, dataframe_to_series_map
+from mlrank.datasets.dataset import HoldoutDataset, dataframe_to_series_map, get_features_except
 
 
 class BreastDataSet(HoldoutDataset):
@@ -54,7 +54,7 @@ class BreastDataSet(HoldoutDataset):
         self.features_ready = True
 
     def cache_features(self):
-        self.train_plain = dataframe_to_series_map(self.data[set(self.data.columns).difference({'diagnosis'})])
+        self.train_plain = dataframe_to_series_map(get_features_except(self.data, ['diagnosis']))
 
     def get_features(self, convert_to_linear: bool):
         # dataset is linear anyway

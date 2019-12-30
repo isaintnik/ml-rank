@@ -15,3 +15,7 @@ def fit_encoder(classes) -> LabelEncoder:
     encoder.fit(classes)
     return encoder
 
+
+def get_features_except(features, _except):
+    return features[list(set(features.columns).difference(set(_except)))]
+

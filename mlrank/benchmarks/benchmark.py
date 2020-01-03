@@ -11,10 +11,12 @@ from mlrank.datasets.dataset import DataSet
 class Benchmark(object):
     def __init__(self,
          optimizer: SubmodularOptimizer,
-         decision_function
+         decision_function,
+         requires_linearisation: bool
     ):
         self.optimizer = optimizer
         self.decision_function = decision_function
+        self.requires_linearisation = requires_linearisation
 
     def train_and_fit(self, subset, X_train: dict, y_train: np.array, X_test: dict):
         if not subset:

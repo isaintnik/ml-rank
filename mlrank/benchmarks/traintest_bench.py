@@ -9,22 +9,22 @@ from mlrank.datasets.dataset import SeparatedDataset
 
 
 class TrainTestBenchmark(Benchmark):
-    def __init__(self, optimizer: SubmodularOptimizer, decision_function):
-        super().__init__(optimizer, decision_function)
+    def __init__(self, optimizer: SubmodularOptimizer, decision_function, requires_linearisation: bool):
+        super().__init__(optimizer, decision_function, requires_linearisation)
 
     def evaluate(self, dataset: SeparatedDataset):
         subset = self.optimizer.select(
-            dataset.get_train_features(False),
-            dataset.get_train_features(True),
+            dataset.get_train_features(convert_to_linear=False),
+            dataset.get_train_features(convert_to_linear=self.requires_linearisation),
             dataset.get_train_target(),
             dataset.get_continuous_feature_names()
         )
 
         y_pred = self.train_and_fit(
             subset,
-            dataset.get_train_features(convert_to_linear=True),
+            dataset.get_train_features(convert_to_linear=self.requires_linearisation),
             dataset.get_train_target(),
-            dataset.get_test_features(convert_to_linear=True)
+            dataset.get_test_features(convert_to_linear=self.requires_linearisation)
         )
 
         print(np.abs((np.squeeze(dataset.get_test_target()) - y_pred)).sum(), y_pred.shape)

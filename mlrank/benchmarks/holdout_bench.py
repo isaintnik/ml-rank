@@ -13,17 +13,24 @@ class HoldoutBenchmark(Benchmark):
             self,
             optimizer: SubmodularOptimizer,
             decision_function,
+            requires_linearisation: bool,
             n_holdouts: int,
             n_jobs: int
     ):
 
-        super().__init__(optimizer, decision_function)
+        super().__init__(optimizer, decision_function, requires_linearisation)
 
         self.n_holdouts = n_holdouts
         self.n_jobs = n_jobs
 
     def evaluate(self, dataset: HoldoutDataset, seed):
-        result = split_dataset(dataset.get_features(False), dataset.get_features(True), dataset.get_target(), seed, int(1))
+        result = split_dataset(
+            dataset.get_features(False),
+            dataset.get_features(self.requires_linearisation),
+            dataset.get_target(),
+            seed,
+            int(1)
+        )
 
         subset = self.optimizer.select(
             result['train']['plain'],

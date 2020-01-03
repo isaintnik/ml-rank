@@ -92,6 +92,10 @@ def log_likelihood_target(A, X_train, X_test, y_train, y_test, decision_function
     return ll
 
 
+def likelihood_target(A, X_train, X_test, y_train, y_test, decision_function, n_random_iter=20, eps_norm=1e-8):
+    return np.exp(log_likelihood_target(A, X_train, X_test, y_train, y_test, decision_function, n_random_iter, eps_norm))
+
+
 def log_likelihood_bic(A, X_train, X_test, y_train, y_test, decision_function, n_random_iter=20, eps_norm=1e-8):
     return np.log(len(y_train)) * len(A) - 2 * \
            log_likelihood_target(A, X_train, X_test, y_train, y_test, decision_function, n_random_iter, eps_norm)

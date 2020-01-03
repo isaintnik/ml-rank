@@ -173,3 +173,7 @@ def log_likelihood_cross_features(
         f_lls.append(ll)
 
     return float(np.sum(f_lls))
+
+
+def likelihood_cross_features(A: list, X_f: dict, X_f_test: dict, X_t: dict, X_t_test: dict, decision_function, n_random_iter=20, eps_norm = 1e-8):
+    return np.exp(A, X_f, X_f_test, X_t, X_t_test, decision_function, n_random_iter, eps_norm)

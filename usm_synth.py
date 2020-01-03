@@ -13,7 +13,7 @@ if not sys.warnoptions:
 from itertools import product
 
 # submodular optimizer
-from mlrank.submodular.optimization.usm import (
+from mlrank.submodular.optimization.multilinear import (
     MultilinearUSMExtended,
     MultilinearUSMClassic
 )

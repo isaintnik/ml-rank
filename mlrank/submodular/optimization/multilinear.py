@@ -15,7 +15,7 @@ from functools import partial
 from mlrank.utils import split_dataset
 
 
-class MultilinearUSM(SubmodularOptimizer):
+class BaseMultilinearUSM(SubmodularOptimizer):
     def __init__(self,
                  threshold=.5,
                  me_eps=.1,
@@ -35,7 +35,7 @@ class MultilinearUSM(SubmodularOptimizer):
 
         self.seeds = [(42 + i) for i in range(self.n_cv)]
 
-    def multiliear_extension(self, x) -> float:
+    def multiliear_extension(self, x) -> np.float128:
         n_iterations = int(1 / (self.me_eps ** 2))
 
         def make_sample_from_dist(x):
@@ -55,8 +55,8 @@ class MultilinearUSM(SubmodularOptimizer):
 
         # Statistically ', expected_samples, ' out of n_iterations will be sampled. Therefore set all the <1 probabilities as 1
         expected_samples = (1-np.min(x_a[x_a > 0])) * n_iterations
+
         if expected_samples < 1:
-            #print('Statistically ', expected_samples, ' out of n_iterations will be sampled. Therefore set all the <1 probabilities as 1')
             return self.score(np.atleast_1d(np.argwhere(x_a > 0).squeeze()).tolist())
 
         if self.n_jobs > 1:
@@ -73,13 +73,16 @@ class MultilinearUSM(SubmodularOptimizer):
             for _ in range(n_iterations):
                 sampled_losses.append(sample_submodular(self.score))
 
-        return float(np.mean(sampled_losses))
+        return np.mean(sampled_losses)
 
-    def apply_usm(self):
+    def optimize(self):
         x = np.zeros(self.n_features)
         y = np.ones(self.n_features)
 
         for i in range(self.n_features):
+            print(x)
+            print(y)
+
             x_i = np.copy(x)
             x_i[i] = 1
 
@@ -88,6 +91,8 @@ class MultilinearUSM(SubmodularOptimizer):
 
             a_i = self.multiliear_extension(x_i) - self.multiliear_extension(x)
             b_i = self.multiliear_extension(y_i) - self.multiliear_extension(y)
+
+            print(a_i, b_i)
 
             a_i = max(a_i, 0)
             b_i = max(b_i, 0)
@@ -105,7 +110,7 @@ class MultilinearUSM(SubmodularOptimizer):
             x = x + a
             y = y - b
 
-            print(x)
+            #print(x)
 
         print(x)
         return np.where(x > self.threshold)[0].tolist()
@@ -117,7 +122,7 @@ class MultilinearUSM(SubmodularOptimizer):
         raise NotImplementedError()
 
 
-class MultilinearUSMExtended(MultilinearUSM):
+class MultilinearUSMExtended(BaseMultilinearUSM):
     def __init__(self,
                  decision_function,
                  score_function,
@@ -154,7 +159,7 @@ class MultilinearUSMExtended(MultilinearUSM):
     #def score(self, numeric_features: list):
     #    return self._score_function([self.feature_list[f] for f in numeric_features])
 
-    def score(self, numeric_features: list) -> float:
+    def score(self, numeric_features: list) -> np.float128:
         scores = list()
 
         for i in range(self.n_cv):
@@ -172,7 +177,7 @@ class MultilinearUSMExtended(MultilinearUSM):
                 )
             )
 
-        return float(np.mean(scores))
+        return np.mean(scores)
 
     def select(self, X_plain: dict, X_transformed: dict, y: np.array, continuous_feature_list: list) -> list:
         self.feature_list = list(X_plain.keys())
@@ -191,4 +196,4 @@ class MultilinearUSMExtended(MultilinearUSM):
             decision_function=self.decision_function
         )
 
-        return self.apply_usm()
+        return [self.feature_list[i] for i in self.optimize()]

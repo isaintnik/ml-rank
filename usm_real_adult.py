@@ -5,7 +5,8 @@ from functools import partial
 
 from mlrank.datasets.internet import InternetDataSet
 from mlrank.preprocessing.dichtomizer import DichtomizationImpossible
-from mlrank.submodular.metrics import log_likelihood_regularized_score_val, log_likelihood_bic, bic_regularized
+from mlrank.submodular.metrics import log_likelihood_regularized_score_val, log_likelihood_bic, bic_regularized, \
+    likelihood_regularized_score_val
 from mlrank.submodular.optimization import ForwardFeatureSelectionExtended, MultilinearUSMExtended
 
 if not sys.warnoptions:
@@ -43,25 +44,26 @@ def benchmark_holdout(dataset, decision_function, lambda_param, bins):
     #score_function = bic_regularized
 
     bench = HoldoutBenchmark(
-        ForwardFeatureSelectionExtended(
+        #ForwardFeatureSelectionExtended(
+        #    decision_function=dfunc,
+        #    score_function=score_function,
+        #    n_bins=bins,
+        #    train_share=0.9,
+        #    n_cv_ffs=8,
+        #    n_jobs=1
+        #),
+        MultilinearUSMExtended(
             decision_function=dfunc,
             score_function=score_function,
             n_bins=bins,
             train_share=0.9,
-            n_cv_ffs=8,
-            n_jobs=4
+            n_cv=8,
+            n_jobs=1
         ),
-        #MultilinearUSMExtended(
-        #    decision_function=dfunc,
-        #    score_function=score_function,
-        #    n_bins=bins,
-        #    train_share=0.8,
-        #    n_cv=8,
-        #),
         decision_function=dfunc,
-        requires_linearisation=decision_function['type'] != 'gbdt',
         n_holdouts=80,
-        n_jobs=6
+        n_jobs=os.cpu_count()-1,
+        requires_linearisation=decision_function['type'] != 'gbdt'
     )
 
     return bench.benchmark(dataset['data'])
@@ -81,17 +83,25 @@ def benchmark_train_test(dataset, decision_function, lambda_param, bins, df_jobs
 
     dfunc = decision_function['classification']
     dfunc.n_jobs = df_jobs
-    score_function = partial(log_likelihood_regularized_score_val,
-                             _lambda=lambda_param)
+    score_function = partial(likelihood_regularized_score_val, _lambda=lambda_param)
 
     bench = TrainTestBenchmark(
-        optimizer=ForwardFeatureSelectionExtended(
+        #optimizer=ForwardFeatureSelectionExtended(
+        #    decision_function=dfunc,
+        #    score_function=score_function,
+        #    n_bins=bins,
+        #    train_share=0.9,
+        #    n_cv_ffs=8,
+        #    n_jobs=8
+        #),
+        optimizer=MultilinearUSMExtended(
             decision_function=dfunc,
             score_function=score_function,
             n_bins=bins,
             train_share=0.9,
-            n_cv_ffs=8,
-            n_jobs=8
+            me_eps=0.15,
+            n_cv=8,
+            n_jobs=1#os.cpu_count()-1
         ),
         decision_function=dfunc,
         requires_linearisation=decision_function['type'] != 'gbdt'
@@ -113,7 +123,7 @@ if __name__ == '__main__':
 
     results = {}
 
-    for dataset, decision_function in product(ALGO_PARAMS['dataset'], ALGO_PARAMS['decision_function']):
+    for dataset, decision_function in product([ALGO_PARAMS['dataset'][1]], ALGO_PARAMS['decision_function']):
         dfunc = decision_function[dataset['problem']]
         key = "{}, {}".format(dataset['name'], dfunc.__class__.__name__)
         results[key] = list()

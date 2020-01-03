@@ -10,7 +10,7 @@ from mlrank.submodular.optimization.ffs import (
     ForwardFeatureSelectionExtended,
     ForwardFeatureSelectionClassic
 )
-from mlrank.submodular.optimization.usm import (
+from mlrank.submodular.optimization.multilinear import (
     MultilinearUSMExtended,
     MultilinearUSMClassic
 )

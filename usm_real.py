@@ -23,7 +23,7 @@ from sklearn.utils.multiclass import type_of_target
 
 from itertools import product
 
-from mlrank.submodular.optimization.usm import (
+from mlrank.submodular.optimization.multilinear import (
     MultilinearUSMExtended,
     MultilinearUSMClassic
 )

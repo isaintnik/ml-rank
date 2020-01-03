@@ -59,6 +59,7 @@ def benchmark_holdout(dataset, decision_function, lambda_param, bins):
         #    n_cv=8,
         #),
         decision_function=dfunc,
+        requires_linearisation=decision_function['type'] != 'gbdt',
         n_holdouts=80,
         n_jobs=24
     )
@@ -90,9 +91,10 @@ def benchmark_train_test(dataset, decision_function, lambda_param, bins, df_jobs
             n_bins=bins,
             train_share=0.9,
             n_cv_ffs=8,
-            n_jobs=8
+            n_jobs=1
         ),
-        decision_function=dfunc
+        decision_function=dfunc,
+        requires_linearisation=decision_function['type'] != 'gbdt'
     )
 
     return bench.benchmark(dataset['data'])
@@ -120,6 +122,9 @@ if __name__ == '__main__':
 
         for lambda_param, bins in product(HYPERPARAMS['lambda'], HYPERPARAMS['bins']):
             print('>> >>', lambda_param, bins)
+
+            if decision_function['type'] not in dataset['supported']:
+                continue
 
             predictions = None
             try:

@@ -61,7 +61,7 @@ class ForwardFeatureSelection(SubmodularOptimizer):
 
         feature_names = list(X_plain.keys())
 
-        for i in feature_names:
+        for _ in feature_names:
             feature_scores = list()
 
             for j in feature_names:

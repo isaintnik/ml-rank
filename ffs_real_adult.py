@@ -49,7 +49,7 @@ def benchmark_holdout(dataset, decision_function, lambda_param, bins):
             n_bins=bins,
             train_share=0.9,
             n_cv_ffs=8,
-            n_jobs=4
+            n_jobs=1
         ),
         #MultilinearUSMExtended(
         #    decision_function=dfunc,
@@ -60,7 +60,7 @@ def benchmark_holdout(dataset, decision_function, lambda_param, bins):
         #),
         decision_function=dfunc,
         n_holdouts=80,
-        n_jobs=6
+        n_jobs=24
     )
 
     return bench.benchmark(dataset['data'])
@@ -111,7 +111,7 @@ if __name__ == '__main__':
 
     results = {}
 
-    for dataset, decision_function in product(ALGO_PARAMS['dataset'], ALGO_PARAMS['decision_function']):
+    for dataset, decision_function in product([ALGO_PARAMS['dataset'][1]], ALGO_PARAMS['decision_function']):
         dfunc = decision_function[dataset['problem']]
         key = "{}, {}".format(dataset['name'], dfunc.__class__.__name__)
         results[key] = list()

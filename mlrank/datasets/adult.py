@@ -8,6 +8,8 @@ class AdultDataSet(SeparatedDataset):
         super().__init__('adult', train_folder, test_folder)
         self.encoders = None
 
+        self.cat_features = ['workclass', 'marital-status', 'occupation', 'relationship', 'income', 'race', 'sex']
+
         self.train_plain = None
         self.train_transformed = None
         self.test_plain = None
@@ -29,11 +31,11 @@ class AdultDataSet(SeparatedDataset):
         self.train.drop('education', axis=1, inplace=True)
         self.test.drop('education', axis=1, inplace=True)
 
-        cat_features = ['workclass', 'marital-status', 'occupation', 'relationship', 'income', 'race', 'sex']#, 'native-country']
+        #, 'native-country']
         self.encoders = dict()
 
         encoders = dict()
-        for feature in cat_features:
+        for feature in self.cat_features:
             encoders[feature] = fit_encoder(pd.concat([self.train[feature], self.test[feature]]))
 
             self.train[feature] = np.squeeze(encoders[feature].transform(self.train[feature]))

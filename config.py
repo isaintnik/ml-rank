@@ -1,3 +1,4 @@
+from catboost import CatBoost, CatBoostClassifier, CatBoostRegressor
 from lightgbm import LGBMRegressor, LGBMClassifier
 from sklearn.linear_model import Lasso, LogisticRegression
 from sklearn.neural_network import MLPRegressor, MLPClassifier
@@ -16,23 +17,35 @@ ADULT_TEST_PATH = './datasets/adult_test.csv'
 INTERNET_TRAIN_PATH = './datasets/internet_train.dat'
 INTERNET_TEST_PATH = './datasets/internet_test.dat'
 
+CATBOOST_PARAMS = {
+    'learning_rate': 0.03,
+    'depth': 6,
+    'fold_len_multiplier': 2,
+    'rsm': 1.0,
+    'border_count': 128,
+    #'ctr_border_count': 16,
+    'l2_leaf_reg': 3,
+    'leaf_estimation_method': 'Newton',
+    #'gradient_iterations': 10,
+    'iterations': 10,
+    #'ctr_description': ['Borders','CounterMax'],
+    'used_ram_limit': 100000000000,
+}
+
 
 ALGO_PARAMS = {
     'dataset': [
-        {'type': 'holdout', 'supported': ['linear', 'mlp', 'gbdt'], 'problem': 'classification', 'name': "breast_cancer", 'data': BreastDataSet(BREAST_CANCER_PATH)},
-        {'type': 'train_test', 'supported': ['linear', 'mlp', 'gbdt'], 'problem': 'classification', 'name': "adult", 'data': AdultDataSet(ADULT_TRAIN_PATH, ADULT_TEST_PATH)},
-        {'type': 'train_test', 'supported': ['linear', 'mlp', 'gbdt'], 'problem': 'classification', 'name': "internet", 'data': InternetDataSet(INTERNET_TRAIN_PATH, INTERNET_TEST_PATH)},
-        {'type': 'train_test', 'supported': ['gbdt'], 'problem': 'classification', 'name': "amazon", 'data': AmazonDataSet(AMAZON_TRAIN_PATH, AMAZON_TEST_PATH)},
+        {'type': 'holdout', 'supported': ['linear', 'mlp', 'gbdt', 'cb'], 'problem': 'classification', 'name': "breast_cancer", 'data': BreastDataSet(BREAST_CANCER_PATH)},
+        {'type': 'train_test', 'supported': ['linear', 'mlp', 'gbdt', 'cb'], 'problem': 'classification', 'name': "adult", 'data': AdultDataSet(ADULT_TRAIN_PATH, ADULT_TEST_PATH)},
+        {'type': 'train_test', 'supported': ['gbdt', 'cb'], 'problem': 'classification', 'name': "internet", 'data': InternetDataSet(INTERNET_TRAIN_PATH, INTERNET_TEST_PATH)},
+        {'type': 'train_test', 'supported': ['gbdt', 'cb'], 'problem': 'classification', 'name': "amazon", 'data': AmazonDataSet(AMAZON_TRAIN_PATH, AMAZON_TEST_PATH)},
     ],
 
     'decision_function': [
-        #{'regression': Lasso(),
-        # 'classification': LogisticRegression(
-        #     multi_class='auto', solver='liblinear', penalty='l1', C=1000, n_jobs=6
-        # ), 'type': 'linear'},
-        #{'regression': MLPRegressor(hidden_layer_sizes=(3, 3), activation='relu'),
-        # 'classification': MLPClassifier(hidden_layer_sizes=(3, 3), activation='relu'),
-        # 'type': 'mlp'},
+        {'regression': Lasso(),
+         'classification': LogisticRegression(
+             multi_class='auto', solver='liblinear', penalty='l1', C=1000, n_jobs=6
+         ), 'type': 'linear'},
         {'regression': LGBMRegressor(
             boosting_type='gbdt',
             learning_rate=0.05,
@@ -41,7 +54,8 @@ ALGO_PARAMS = {
             n_estimators=1000,
             verbose=-1,
             num_leaves=2 ** 5,
-            silent=True
+            silent=True,
+            n_jobs=4
             ),
         'classification': LGBMClassifier(
             boosting_type='gbdt',
@@ -51,14 +65,34 @@ ALGO_PARAMS = {
             n_estimators=1000,
             verbose=-1,
             num_leaves=2 ** 5,
-            silent=True
+            silent=True,
+            n_jobs=8
             ),
         'type': 'gbdt'
-        }
+        },
+        #{'classification': CatBoostClassifier(
+        #    **{**CATBOOST_PARAMS, **{
+        #        'loss_function': 'MultiClass',
+        #        'verbose': False,
+        #        'thread_count': 4,
+        #        'random_seed': 0}
+        #    }
+        #), 'regression': CatBoostRegressor(
+        #    **{**CATBOOST_PARAMS, **{
+        #        'loss_function': 'RMSE',
+        #        'verbose': False,
+        #        'thread_count': 4,
+        #        'random_seed': 0
+        #    }}
+        #), 'type': 'cb'},
+        {'regression': MLPRegressor(hidden_layer_sizes=(2, 2), activation='relu'),
+         'classification': MLPClassifier(hidden_layer_sizes=(2, 2), activation='relu'),
+         'type': 'mlp'
+        },
     ]
 }
 
 HYPERPARAMS = {
     'bins': [2, 4, 8],
-    'lambda': [.0, 0.0001, 0.0005, 0.0007, 0.001, 0.0015, 0.002, 0.003, 0.003]
+    'lambda': [0, 0.0001, 0.0005, 0.0007, 0.001, 0.0015, 0.002, 0.003, 0.005, 0.007, 0.01]
 }

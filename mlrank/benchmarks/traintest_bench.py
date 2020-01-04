@@ -2,7 +2,7 @@ import numpy as np
 
 from sklearn.utils.multiclass import type_of_target
 
-from mlrank.preprocessing.dichtomizer import MaxentropyMedianDichtomizationTransformer, DichtomizationIssue
+from mlrank.preprocessing.dichtomizer import MaxentropyMedianDichtomizationTransformer, DichotomizationIssue
 from mlrank.submodular.optimization.optimizer import SubmodularOptimizer
 from .benchmark import Benchmark
 from mlrank.datasets.dataset import SeparatedDataset

@@ -8,7 +8,7 @@ from sklearn.preprocessing import OneHotEncoder, LabelBinarizer, LabelEncoder
 from sklearn.decomposition import FastICA
 from scipy.stats import entropy
 
-from mlrank.preprocessing.dichtomizer import map_continuous_names, MaxentropyMedianDichtomizationTransformer, dichtomize_matrix
+from mlrank.preprocessing.dichtomizer import map_continuous_names, MaxentropyMedianDichtomizationTransformer, dichotomize_matrix
 
 from pyitlib.discrete_random_variable import entropy_joint
 
@@ -131,15 +131,14 @@ def joint_entropy_score_exact(subset, X):
 def log_likelihood_cross_features(
         A: list, X_f: dict, X_f_test: dict,
         X_t: dict, X_t_test: dict,
-        decision_function,
+        df,
         n_random_iter=20, eps_norm = 1e-8
 ) -> float:
     f_lls = list()
 
     for i in X_t.keys():
         #print('->', i)
-        model = clone(decision_function)
-        decision_function = clone(decision_function)
+        model = df#clone(df)
 
         #X_train_m = make_features_matrix(X_train, A)
 
@@ -169,6 +168,8 @@ def log_likelihood_cross_features(
                 y_pred = np.random.beta(1 / 2, 1 / 2, size=len(y))
                 lls.append(np.sum(np.log(y_pred + eps_norm)))
             ll = np.mean(lls)
+
+        #del model
 
         f_lls.append(ll)
 

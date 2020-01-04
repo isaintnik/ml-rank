@@ -5,7 +5,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.utils._joblib import Parallel, delayed
 
 from mlrank.preprocessing.dichtomizer import (
-    DichtomizationIssue
+    DichotomizationIssue
 )
 from mlrank.submodular.optimization.optimizer import SubmodularOptimizer
 
@@ -185,11 +185,11 @@ class MultilinearUSMExtended(BaseMultilinearUSM):
 
         try:
             self.X_f = X_transformed
-            self.X_t = self.dichtomize_features(X_plain, self.n_bins, continuous_feature_list)
-            self.y = self.dichtomize_target(y, self.n_bins)
+            self.X_t = self.dichotomize_features(X_plain, self.n_bins, continuous_feature_list)
+            self.y = self.dichotomize_target(y, self.n_bins)
         except Exception as e:
             print(e)
-            raise DichtomizationIssue(self.n_bins)
+            raise DichotomizationIssue(self.n_bins)
 
         self._score_function = partial(
             self.score_function,

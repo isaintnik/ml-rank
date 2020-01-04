@@ -6,7 +6,7 @@ from functools import partial
 from sklearn.exceptions import ConvergenceWarning
 from sklearn.metrics import accuracy_score, mutual_info_score
 
-from mlrank.preprocessing.dichtomizer import dichtomize_vector
+from mlrank.preprocessing.dichtomizer import dichotomize_vector
 from mlrank.submodular.metrics import (
     log_likelihood_regularized_score_val,
 

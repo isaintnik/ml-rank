@@ -113,7 +113,9 @@ if __name__ == '__main__':
 
     results = {}
 
-    for dataset, decision_function in product([ALGO_PARAMS['dataset'][3]], ALGO_PARAMS['decision_function']):
+    HYPERPARAMS['bins'] = [4]
+
+    for dataset, decision_function in product([ALGO_PARAMS['dataset'][2]], ALGO_PARAMS['decision_function']):
         dfunc = decision_function[dataset['problem']]
         key = "{}, {}".format(dataset['name'], dfunc.__class__.__name__)
         results[key] = list()

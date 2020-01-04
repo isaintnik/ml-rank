@@ -57,14 +57,14 @@ from mlrank.utils import make_features_matrix, get_model_classification_order, f
 #    return ll
 
 
-def log_likelihood_target(A, X_train, X_test, y_train, y_test, decision_function, n_random_iter=20, eps_norm=1e-8):
+def log_likelihood_target(A, X_train, X_test, y_train, y_test, df, n_random_iter=20, eps_norm=1e-8):
     target = np.squeeze(y_train)
     target_type = type_of_target(target)
 
     if target_type not in ['binary', 'multiclass']:
         raise Exception(target_type, 'not supported.')
 
-    decision_function = clone(decision_function)
+    decision_function = df#clone(df)
     ll = 0
 
     y_test = np.copy(y_test)
@@ -79,6 +79,7 @@ def log_likelihood_target(A, X_train, X_test, y_train, y_test, decision_function
         # map test values to indices to calc log likelihood
         classes_ = get_model_classification_order(decision_function)
         y_test, y_pred = fix_target(classes_, y_test, y_pred)
+        #del decision_function
 
         ll = np.sum(np.log(y_pred[np.arange(y_test.size), np.squeeze(y_test)] + eps_norm))
     else:

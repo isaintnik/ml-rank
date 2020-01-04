@@ -91,7 +91,7 @@ def benchmark_train_test(dataset, decision_function, lambda_param, bins, df_jobs
             n_bins=bins,
             train_share=0.9,
             n_cv_ffs=8,
-            n_jobs=1
+            n_jobs=8
         ),
         decision_function=dfunc,
         requires_linearisation=decision_function['type'] != 'gbdt'

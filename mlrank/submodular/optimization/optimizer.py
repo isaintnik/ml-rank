@@ -1,8 +1,8 @@
 import numpy as np
 
 from mlrank.preprocessing.dichtomizer import (
-    dichtomize_vector,
-    dichtomize_matrix,
+    dichotomize_vector,
+    dichotomize_matrix,
 )
 
 from mlrank.datasets.dataset import DataSet
@@ -16,18 +16,18 @@ class SubmodularOptimizer(object):
     def __init__(self):
         pass
 
-    def dichtomize_features(self, X: dict, n_bins, continuous_feature_list: list) -> dict:
+    def dichotomize_features(self, X: dict, n_bins, continuous_feature_list: list) -> dict:
         #return dichtomize_matrix(X, n_bins=n_bins, ordered=False)
         new_features = dict()
         for k, v in X.items():
             if k in continuous_feature_list:
-                new_features[k] = dichtomize_vector(v, n_bins=n_bins, ordered=False)
+                new_features[k] = dichotomize_vector(v, n_bins=n_bins, ordered=False)
             else:
                 new_features[k] = v
         return new_features
 
-    def dichtomize_target(self, y: dict, n_bins) -> np.array:
-        return dichtomize_vector(y, n_bins=n_bins, ordered=False)
+    def dichotomize_target(self, y: dict, n_bins) -> np.array:
+        return dichotomize_vector(y, n_bins=n_bins, ordered=False)
 
     #def select(self, X_plain: dict, X_transformed:dict,  y: np.array, continuous_feature_list: list) -> list:
     #    raise NotImplementedError()

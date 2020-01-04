@@ -4,7 +4,7 @@ import numpy as np
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import accuracy_score
 
-from mlrank.preprocessing.dichtomizer import dichtomize_vector
+from mlrank.preprocessing.dichtomizer import dichotomize_vector
 from mlrank.synth.linear import LinearProblemGenerator
 from sklearn.metrics import mutual_info_score
 from mlrank.submodular.optimization.ffs import (

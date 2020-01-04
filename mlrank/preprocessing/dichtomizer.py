@@ -6,7 +6,7 @@ from sklearn.utils import check_array, as_float_array
 from sklearn.utils.multiclass import type_of_target
 
 
-class DichtomizationIssue(Exception):
+class DichotomizationIssue(Exception):
     def __init__(self, n_bins):
         super().__init__(f"dichtomization issue at {n_bins} splits.")
 
@@ -213,7 +213,7 @@ def map_continuous_names(y, continuous_labels = None):
     return list(map(lambda x: mapping[x], y.tolist()))
 
 
-def dichtomize_vector(y, n_bins, ordered=False):
+def dichotomize_vector(y, n_bins, ordered=False):
     y = np.squeeze(y)
 
     if type_of_target(y) == 'multiclass':
@@ -232,10 +232,10 @@ def dichtomize_vector(y, n_bins, ordered=False):
         return np.squeeze(splitter.transform(y.reshape(-1, 1)))
 
 
-def dichtomize_matrix(X, n_bins, ordered=False):
+def dichotomize_matrix(X, n_bins, ordered=False):
     new_x = list()
     for i in range(X.shape[1]):
-        new_x.append(dichtomize_vector(X[:, i], n_bins=n_bins, ordered=ordered).reshape(-1, 1))
+        new_x.append(dichotomize_vector(X[:, i], n_bins=n_bins, ordered=ordered).reshape(-1, 1))
 
     return np.hstack(new_x)
 

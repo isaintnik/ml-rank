@@ -3,7 +3,7 @@ from joblib import Parallel, delayed
 
 from sklearn.base import clone
 
-from mlrank.preprocessing.dichtomizer import DichtomizationIssue
+from mlrank.preprocessing.dichtomizer import DichotomizationIssue
 from mlrank.submodular.optimization.optimizer import SubmodularOptimizer
 from mlrank.utils import split_dataset
 
@@ -45,11 +45,11 @@ class ForwardFeatureSelection(SubmodularOptimizer):
     def select(self, X_plain: dict, X_transformed: dict, y: np.array, continuous_feature_list: list) -> list:
         try:
             X_f = X_transformed
-            X_t = self.dichtomize_features(X_plain, self.n_bins, continuous_feature_list)
-            y = self.dichtomize_target(y, self.n_bins)
+            X_t = self.dichotomize_features(X_plain, self.n_bins, continuous_feature_list)
+            y = self.dichotomize_target(y, self.n_bins)
         except Exception as e:
             print(e)
-            raise DichtomizationIssue(self.n_bins)
+            raise DichotomizationIssue(self.n_bins)
 
         subset = list()
         subset_logs = list()
@@ -131,7 +131,7 @@ class ForwardFeatureSelectionExtended(ForwardFeatureSelection):
                     X_t_test=result['test']['plain'],
                     y=result['train']['target'],
                     y_test=result['test']['target'],
-                    decision_function=self.decision_function
+                    decision_function=clone(self.decision_function)
                 )
                 for result in (
                     split_dataset(X_t, X_f, y, self.seeds[i], 1 - self.train_share)

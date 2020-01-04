@@ -3,7 +3,7 @@ from functools import partial
 import numpy as np
 from sklearn.linear_model import LogisticRegression
 
-from mlrank.preprocessing.dichtomizer import dichotomize_vector
+from mlrank.preprocessing.dichotomizer import dichotomize_vector
 from mlrank.synth.linear import LinearProblemGenerator
 from mlrank.synth.nonlinear import NonlinearProblemGenerator
 from mlrank.submodular.optimization.ffs import (

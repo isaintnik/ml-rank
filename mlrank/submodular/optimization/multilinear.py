@@ -4,7 +4,7 @@ from sklearn.model_selection import train_test_split
 
 from sklearn.utils._joblib import Parallel, delayed
 
-from mlrank.preprocessing.dichtomizer import (
+from mlrank.preprocessing.dichotomizer import (
     DichotomizationIssue
 )
 from mlrank.submodular.optimization.optimizer import SubmodularOptimizer
@@ -73,7 +73,10 @@ class BaseMultilinearUSM(SubmodularOptimizer):
             for _ in range(n_iterations):
                 sampled_losses.append(sample_submodular(self.score))
 
-        return np.mean(sampled_losses)
+        mean_losses = np.mean(sampled_losses)
+        assert(mean_losses > 0)
+
+        return mean_losses
 
     def optimize(self):
         x = np.zeros(self.n_features)

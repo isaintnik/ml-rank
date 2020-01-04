@@ -3,7 +3,7 @@ from joblib import Parallel, delayed
 
 from sklearn.base import clone
 
-from mlrank.preprocessing.dichtomizer import DichotomizationIssue
+from mlrank.preprocessing.dichotomizer import DichotomizationIssue
 from mlrank.submodular.optimization.optimizer import SubmodularOptimizer
 from mlrank.utils import split_dataset
 

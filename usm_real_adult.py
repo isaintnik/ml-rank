@@ -4,7 +4,7 @@ import warnings
 from functools import partial
 
 from mlrank.datasets.internet import InternetDataSet
-from mlrank.preprocessing.dichtomizer import DichtomizationImpossible
+from mlrank.preprocessing.dichotomizer import DichotomizationImpossible
 from mlrank.submodular.metrics import log_likelihood_regularized_score_val, log_likelihood_bic, bic_regularized, \
     likelihood_regularized_score_val
 from mlrank.submodular.optimization import ForwardFeatureSelectionExtended, MultilinearUSMExtended
@@ -37,7 +37,7 @@ def benchmark_holdout(dataset, decision_function, lambda_param, bins):
 
     if bins >= dataset['data'].get_target().size * 0.8 + 1:
         print(key, bins, 'very small dataset for such dichtomization.')
-        raise DichtomizationImpossible(bins, int(dataset['data'].get_target().size * 0.8))
+        raise DichotomizationImpossible(bins, int(dataset['data'].get_target().size * 0.8))
 
     dfunc = decision_function['classification']
     score_function = partial(log_likelihood_regularized_score_val, _lambda=lambda_param)    #score_function = partial(decision_function, _lambda=lambda_param)
@@ -79,7 +79,7 @@ def benchmark_train_test(dataset, decision_function, lambda_param, bins, df_jobs
 
     if bins >= y_train.size * 0.8 + 1:
         print(key, bins, 'very small dataset for such dichtomization.')
-        raise DichtomizationImpossible(bins, int(y_train.size * 0.8))
+        raise DichotomizationImpossible(bins, int(y_train.size * 0.8))
 
     dfunc = decision_function['classification']
     dfunc.n_jobs = df_jobs
@@ -144,7 +144,7 @@ if __name__ == '__main__':
                     predictions = benchmark_train_test(dataset, decision_function, lambda_param, bins)
                 else:
                     print('unknown target type')
-            except DichtomizationImpossible as e:
+            except DichotomizationImpossible as e:
                 print(str(e))
                 continue
 

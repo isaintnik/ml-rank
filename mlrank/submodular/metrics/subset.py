@@ -8,7 +8,7 @@ from sklearn.preprocessing import OneHotEncoder, LabelBinarizer, LabelEncoder
 from sklearn.decomposition import FastICA
 from scipy.stats import entropy
 
-from mlrank.preprocessing.dichtomizer import map_continuous_names, MaxentropyMedianDichtomizationTransformer, dichotomize_matrix
+from mlrank.preprocessing.dichotomizer import map_continuous_names, MaxentropyMedianDichotomizationTransformer, dichotomize_matrix
 
 from pyitlib.discrete_random_variable import entropy_joint
 

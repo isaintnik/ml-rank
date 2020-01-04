@@ -1,6 +1,6 @@
 import numpy as np
 
-from mlrank.preprocessing.dichtomizer import (
+from mlrank.preprocessing.dichotomizer import (
     dichotomize_vector,
     dichotomize_matrix,
 )

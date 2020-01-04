@@ -4,7 +4,7 @@ import warnings
 from functools import partial
 
 from mlrank.datasets.internet import InternetDataSet
-from mlrank.preprocessing.dichtomizer import DichtomizationImpossible
+from mlrank.preprocessing.dichotomizer import DichotomizationImpossible
 from mlrank.submodular.metrics import log_likelihood_regularized_score_val, log_likelihood_bic, bic_regularized
 from mlrank.submodular.optimization import ForwardFeatureSelectionExtended, MultilinearUSMExtended
 
@@ -36,7 +36,7 @@ def benchmark_holdout(dataset, decision_function, lambda_param, bins):
 
     if bins >= dataset['data'].get_target().size * 0.8 + 1:
         print(key, bins, 'very small dataset for such dichtomization.')
-        raise DichtomizationImpossible(bins, int(dataset['data'].get_target().size * 0.8))
+        raise DichotomizationImpossible(bins, int(dataset['data'].get_target().size * 0.8))
 
     dfunc = decision_function['classification']
     score_function = partial(log_likelihood_regularized_score_val, _lambda=lambda_param)    #score_function = partial(decision_function, _lambda=lambda_param)
@@ -77,7 +77,7 @@ def benchmark_train_test(dataset, decision_function, lambda_param, bins, df_jobs
 
     if bins >= y_train.size * 0.8 + 1:
         print(key, bins, 'very small dataset for such dichtomization.')
-        raise DichtomizationImpossible(bins, int(y_train.size * 0.8))
+        raise DichotomizationImpossible(bins, int(y_train.size * 0.8))
 
     dfunc = decision_function['classification']
     dfunc.n_jobs = df_jobs
@@ -106,7 +106,8 @@ def benchmark_train_test(dataset, decision_function, lambda_param, bins, df_jobs
 #LUNG_CANCER_PATH = './datasets/lung-cancer.data'
 
 
-if __name__ == '__main__':
+#if __name__ == '__main__':
+def main():
     np.random.seed(42)
 
     joblib.dump('test', "./data/testdoc.bin")
@@ -136,7 +137,7 @@ if __name__ == '__main__':
                     predictions = benchmark_train_test(dataset, decision_function, lambda_param, bins)
                 else:
                     print('unknown target type')
-            except DichtomizationImpossible as e:
+            except DichotomizationImpossible as e:
                 print(str(e))
                 continue
 
@@ -147,3 +148,22 @@ if __name__ == '__main__':
             })
 
             joblib.dump(results, f"./data/{dataset['name']}.bin")
+
+
+if __name__ == '__main__':
+    main()
+#    import cProfile, pstats
+#
+#    pr = cProfile.Profile()
+#    try:
+#        pr.enable()
+#        pr.runcall(main())
+#    except:
+#        pr.disable()
+#
+#        sortby = 'cumulative'
+#        ps = pstats.Stats(pr, stream=s).sort_stats(sortby)
+#        ps.print_stats()
+
+
+

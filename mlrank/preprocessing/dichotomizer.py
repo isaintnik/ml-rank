@@ -11,12 +11,12 @@ class DichotomizationIssue(Exception):
         super().__init__(f"dichtomization issue at {n_bins} splits.")
 
 
-class DichtomizationImpossible(Exception):
+class DichotomizationImpossible(Exception):
     def __init__(self, n_bins, n_size):
         super().__init__(f"dichtomization is impossible for {n_bins} splits and {n_size} obs.")
 
 
-class MaxentropyMedianDichtomizationTransformer(BaseEstimator, TransformerMixin):
+class MaxentropyMedianDichotomizationTransformer(BaseEstimator, TransformerMixin):
     def __init__(self, n_splits, verbose=False):
         self.n_splits = n_splits
 
@@ -218,7 +218,7 @@ def dichotomize_vector(y, n_bins, ordered=False):
 
     if type_of_target(y) == 'multiclass':
         print('target could be multiclass!')
-    splitter = MaxentropyMedianDichtomizationTransformer(n_bins)
+    splitter = MaxentropyMedianDichotomizationTransformer(n_bins)
     y_unique = np.unique(y)
 
     if n_bins < y_unique.shape[0]:

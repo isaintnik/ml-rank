@@ -7,11 +7,12 @@ from mlrank.preprocessing.dichotomizer import DichotomizationIssue
 from mlrank.submodular.optimization.optimizer import SubmodularOptimizer
 from mlrank.utils import split_dataset
 
+from guppy import hpy; h = hpy()
+
 
 class ForwardFeatureSelection(SubmodularOptimizer):
     def __init__(self,
                  decision_function,
-                 score_function,
                  train_share: float = 1.0,
                  n_bins: int = 4,
                  n_features: int = -1,
@@ -29,7 +30,6 @@ class ForwardFeatureSelection(SubmodularOptimizer):
         super().__init__()
 
         self.decision_function = clone(decision_function)
-        self.score_function = score_function
         self.n_cv_ffs = n_cv_ffs
         self.n_bins = n_bins
         self.train_share = train_share
@@ -62,12 +62,15 @@ class ForwardFeatureSelection(SubmodularOptimizer):
         feature_names = list(X_plain.keys())
 
         for _ in feature_names:
+            print(h.heap())
+
             feature_scores = list()
 
             for j in feature_names:
                 if j in subset_logs:
                     feature_scores.append(-np.inf)
                 else:
+                    #print(j)
                     feature_scores.append(self.evaluate_new_feature(subset, j, X_f, X_t, y))
 
             top_feature = int(np.argmax(feature_scores))  # np.atleast_1d(np.squeeze(np.argmax(feature_scores)))[0]
@@ -110,13 +113,14 @@ class ForwardFeatureSelectionExtended(ForwardFeatureSelection):
         """
         super().__init__(
             decision_function,
-            score_function,
             train_share,
             n_bins,
             n_features,
             n_cv_ffs,
             n_jobs
         )
+
+        self.score_function = score_function
 
     def evaluate_new_feature(self, prev_subset: list, new_feature, X_f: dict, X_t: dict, y: np.array) -> float:
         A = prev_subset + [new_feature]
@@ -154,3 +158,34 @@ class ForwardFeatureSelectionExtended(ForwardFeatureSelection):
                 ))
 
         return float(np.mean(scores))
+
+
+#class ForwardFeatureSelectionIC(ForwardFeatureSelection):
+#    def __init__(self,
+#                 decision_function,
+#                 criterion,
+#                 train_share: float = 1.0,
+#                 n_bins: int = 4,
+#                 n_features: int = -1,
+#                 n_cv_ffs: int = 1,
+#                 n_jobs: int = -1,
+#                 ):
+#        """
+#        Perform greedy algorithm of feature selection ~ O(n_features ** 2)
+#        :param decision_function: decision function to be evaluated
+#        :param score_function: score function for submodular optimization
+#        :param train_share: share of data to be trained on
+#        :param n_cv_ffs: number of CV's, 1 = evaluate on training set
+#        :param n_bins: only used for continuous targets
+#        """
+#
+#        self.criterions = criterion
+#
+#        super().__init__(
+#            decision_function,
+#            train_share,
+#            n_bins,
+#            n_features,
+#            n_cv_ffs,
+#            n_jobs
+#        )

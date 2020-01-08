@@ -5,7 +5,7 @@ from functools import partial
 
 from mlrank.datasets.internet import InternetDataSet
 from mlrank.preprocessing.dichotomizer import DichotomizationImpossible
-from mlrank.submodular.metrics import log_likelihood_regularized_score_val, log_likelihood_bic, bic_regularized
+from mlrank.submodular.metrics import log_likelihood_regularized_score_val
 from mlrank.submodular.optimization import ForwardFeatureSelectionExtended, MultilinearUSMExtended
 
 if not sys.warnoptions:

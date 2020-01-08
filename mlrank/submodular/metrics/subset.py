@@ -138,7 +138,7 @@ def log_likelihood_cross_features(
 
     for i in X_t.keys():
         #print('->', i)
-        model = df#clone(df)
+        model = clone(df)
 
         #X_train_m = make_features_matrix(X_train, A)
 
@@ -169,7 +169,7 @@ def log_likelihood_cross_features(
                 lls.append(np.sum(np.log(y_pred + eps_norm)))
             ll = np.mean(lls)
 
-        #del model
+        del model
 
         f_lls.append(ll)
 

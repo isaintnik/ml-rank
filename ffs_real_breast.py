@@ -5,7 +5,7 @@ from functools import partial
 
 from mlrank.datasets.internet import InternetDataSet
 from mlrank.preprocessing.dichotomizer import DichotomizationImpossible
-from mlrank.submodular.metrics import log_likelihood_regularized_score_val
+from mlrank.submodular.metrics import log_likelihood_regularized_score_val, log_likelihood_bic, bic_regularized
 from mlrank.submodular.optimization import ForwardFeatureSelectionExtended, MultilinearUSMExtended
 
 if not sys.warnoptions:
@@ -35,7 +35,7 @@ def benchmark_holdout(dataset, decision_function, lambda_param, bins):
     dataset['data'].cache_features()
 
     if bins >= dataset['data'].get_target().size * 0.8 + 1:
-        print(bins, 'very small dataset for such dichtomization.')
+        print(key, bins, 'very small dataset for such dichtomization.')
         raise DichotomizationImpossible(bins, int(dataset['data'].get_target().size * 0.8))
 
     dfunc = decision_function['classification']
@@ -59,9 +59,9 @@ def benchmark_holdout(dataset, decision_function, lambda_param, bins):
         #    n_cv=8,
         #),
         decision_function=dfunc,
+        requires_linearisation=decision_function['type'] != 'gbdt',
         n_holdouts=80,
-        n_jobs=4,
-        requires_linearisation=decision_function['type'] != 'gbdt'
+        n_jobs=24
     )
 
     return bench.benchmark(dataset['data'])
@@ -76,7 +76,7 @@ def benchmark_train_test(dataset, decision_function, lambda_param, bins, df_jobs
     y_train = dataset['data'].get_train_target()
 
     if bins >= y_train.size * 0.8 + 1:
-        print(bins, 'very small dataset for such dichtomization.')
+        print(key, bins, 'very small dataset for such dichtomization.')
         raise DichotomizationImpossible(bins, int(y_train.size * 0.8))
 
     dfunc = decision_function['classification']
@@ -89,9 +89,9 @@ def benchmark_train_test(dataset, decision_function, lambda_param, bins, df_jobs
             decision_function=dfunc,
             score_function=score_function,
             n_bins=bins,
-            train_share=0.8,
+            train_share=0.9,
             n_cv_ffs=8,
-            n_jobs=8
+            n_jobs=24
         ),
         decision_function=dfunc,
         requires_linearisation=decision_function['type'] != 'gbdt'
@@ -106,17 +106,14 @@ def benchmark_train_test(dataset, decision_function, lambda_param, bins, df_jobs
 #LUNG_CANCER_PATH = './datasets/lung-cancer.data'
 
 
-#if __name__ == '__main__':
-def main():
+if __name__ == '__main__':
     np.random.seed(42)
 
     joblib.dump('test', "./data/testdoc.bin")
 
     results = {}
 
-    HYPERPARAMS['bins'] = [4]
-
-    for dataset, decision_function in product([ALGO_PARAMS['dataset'][2]], ALGO_PARAMS['decision_function']):
+    for dataset, decision_function in product([ALGO_PARAMS['dataset'][0]], ALGO_PARAMS['decision_function']):
         dfunc = decision_function[dataset['problem']]
         key = "{}, {}".format(dataset['name'], dfunc.__class__.__name__)
         results[key] = list()
@@ -147,25 +144,4 @@ def main():
                 'result': predictions
             })
 
-            sys.stdout.flush()
-
-            joblib.dump(results, f"./data/{dataset['name']}.bin")
-
-
-if __name__ == '__main__':
-    main()
-#    import cProfile, pstats
-#
-#    pr = cProfile.Profile()
-#    try:
-#        pr.enable()
-#        pr.runcall(main())
-#    except:
-#        pr.disable()
-#
-#        sortby = 'cumulative'
-#        ps = pstats.Stats(pr, stream=s).sort_stats(sortby)
-#        ps.print_stats()
-
-
-
+            joblib.dump(results, f"./data/{dataset['name']}_1.bin")

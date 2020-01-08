@@ -11,7 +11,11 @@ def make_features_matrix(features: dict, subset: list):
 
 
 def split_dataset(X_plain: dict, X_transformed: dict, y: np.array, seed: int, test_size) -> dict:
-    train_indices, test_indices = train_test_split(range(y.size), test_size=test_size, random_state=seed, stratify=y)
+    if type(test_size) == int and test_size == 1:
+        train_indices, test_indices = train_test_split(range(y.size), test_size=test_size, random_state=seed)
+    else:
+        train_indices, test_indices = train_test_split(range(y.size), test_size=test_size, random_state=seed,
+                                                       stratify=y)
 
     result = {
         'train': dict(),

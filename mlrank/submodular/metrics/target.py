@@ -4,6 +4,7 @@ from sklearn.preprocessing import OneHotEncoder, LabelEncoder
 from sklearn.utils.multiclass import type_of_target
 from sklearn.base import clone
 
+from mlrank.submodular.metrics.coefs import get_model_n_coefs
 from mlrank.utils import make_features_matrix, get_model_classification_order, fix_target
 
 
@@ -57,14 +58,14 @@ from mlrank.utils import make_features_matrix, get_model_classification_order, f
 #    return ll
 
 
-def log_likelihood_target(A, X_train, X_test, y_train, y_test, df, n_random_iter=20, eps_norm=1e-8):
+def log_likelihood_target(A, X_train, X_test, y_train, y_test, df, n_random_iter=20, eps_norm=1e-8, return_fitted:bool = False):
     target = np.squeeze(y_train)
     target_type = type_of_target(target)
 
     if target_type not in ['binary', 'multiclass']:
         raise Exception(target_type, 'not supported.')
 
-    decision_function = df#clone(df)
+    decision_function = clone(df)
     ll = 0
 
     y_test = np.copy(y_test)
@@ -79,7 +80,6 @@ def log_likelihood_target(A, X_train, X_test, y_train, y_test, df, n_random_iter
         # map test values to indices to calc log likelihood
         classes_ = get_model_classification_order(decision_function)
         y_test, y_pred = fix_target(classes_, y_test, y_pred)
-        #del decision_function
 
         ll = np.sum(np.log(y_pred[np.arange(y_test.size), np.squeeze(y_test)] + eps_norm))
     else:
@@ -90,6 +90,11 @@ def log_likelihood_target(A, X_train, X_test, y_train, y_test, df, n_random_iter
             lls.append(np.sum(np.log(y_pred + eps_norm)))
         ll = np.mean(lls)
 
+    if return_fitted:
+        return decision_function, ll
+
+    del decision_function
+
     return ll
 
 
@@ -98,10 +103,28 @@ def likelihood_target(A, X_train, X_test, y_train, y_test, decision_function, n_
 
 
 def log_likelihood_bic(A, X_train, X_test, y_train, y_test, decision_function, n_random_iter=20, eps_norm=1e-8):
-    return np.log(len(y_train)) * len(A) - 2 * \
-           log_likelihood_target(A, X_train, X_test, y_train, y_test, decision_function, n_random_iter, eps_norm)
+    df, ll = log_likelihood_target(A, X_train, X_test, y_train, y_test, decision_function, n_random_iter, eps_norm,
+                                   return_fitted=True)
+    n_coefs = get_model_n_coefs(df)
+    del df
+
+    return 2*ll - np.log(len(y_test)) * n_coefs
 
 
 def log_likelihood_aic(A, X_train, X_test, y_train, y_test, decision_function, n_random_iter=20, eps_norm=1e-8):
-    return 2 * len(A) - 2 * \
-           log_likelihood_target(A, X_train, X_test, y_train, y_test, decision_function, n_random_iter, eps_norm)
+    df, ll = log_likelihood_target(A, X_train, X_test, y_train, y_test, decision_function, n_random_iter, eps_norm,
+                                   return_fitted=True)
+    n_coefs = get_model_n_coefs(df)
+    del df
+
+    return 2*ll - 2 * n_coefs
+
+
+def log_likelihood_aicc(A, X_train, X_test, y_train, y_test, decision_function, n_random_iter=20, eps_norm=1e-8):
+    df, ll = log_likelihood_target(A, X_train, X_test, y_train, y_test, decision_function, n_random_iter, eps_norm,
+                                   return_fitted=True)
+    n_coefs = get_model_n_coefs(df)
+    del df
+
+    return 2*ll - 2 * n_coefs - float(2 * (n_coefs ** 2) + 2 * n_coefs) / float(len(y_test) - n_coefs - 1)
+

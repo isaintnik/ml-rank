@@ -42,10 +42,10 @@ ALGO_PARAMS = {
     ],
 
     'decision_function': [
-        {'regression': Lasso(),
-         'classification': LogisticRegression(
-             multi_class='auto', solver='liblinear', penalty='l1', C=1000, n_jobs=6
-         ), 'type': 'linear'},
+        #{'regression': Lasso(),
+        # 'classification': LogisticRegression(
+        #     multi_class='auto', solver='liblinear', penalty='l1', C=1000, n_jobs=6
+        # ), 'type': 'linear'},
         {'regression': LGBMRegressor(
             boosting_type='gbdt',
             learning_rate=0.05,
@@ -66,7 +66,7 @@ ALGO_PARAMS = {
             verbose=-1,
             num_leaves=2 ** 5,
             silent=True,
-            n_jobs=8
+            n_jobs=4
             ),
         'type': 'gbdt'
         },
@@ -85,15 +85,15 @@ ALGO_PARAMS = {
         #        'random_seed': 0
         #    }}
         #), 'type': 'cb'},
-        {'regression': MLPRegressor(hidden_layer_sizes=(2, 2), activation='relu'),
-         'classification': MLPClassifier(hidden_layer_sizes=(2, 2), activation='relu'),
-         'type': 'mlp'
-        },
+        #{'regression': MLPRegressor(hidden_layer_sizes=(2, 2), activation='relu'),
+        # 'classification': MLPClassifier(hidden_layer_sizes=(2, 2), activation='relu'),
+        # 'type': 'mlp'
+        #},
     ]
 }
 
 HYPERPARAMS = {
     #'bins': [2, 4, 8],
-    'bins': [2, 4, 8],
+    'bins': [4],
     'lambda': [0, 0.0005, 0.001, 0.0015, 0.002, 0.003, 0.005, 0.01]
 }

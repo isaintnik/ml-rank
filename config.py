@@ -5,6 +5,7 @@ from sklearn.neural_network import MLPRegressor, MLPClassifier
 
 from mlrank.datasets import BreastDataSet, AdultDataSet, AmazonDataSet
 from mlrank.datasets.internet import InternetDataSet
+from mlrank.datasets.seizures import SeizuresDataSet
 
 BREAST_CANCER_PATH = './datasets/breast_cancer.csv'
 
@@ -16,6 +17,9 @@ ADULT_TEST_PATH = './datasets/adult_test.csv'
 
 INTERNET_TRAIN_PATH = './datasets/internet_train.dat'
 INTERNET_TEST_PATH = './datasets/internet_test.dat'
+
+SEIZURES_TRAIN_PATH = './datasets/seizures_train.csv'
+SEIZURES_TEST_PATH = './datasets/seizures_test.csv'
 
 CATBOOST_PARAMS = {
     'learning_rate': 0.03,
@@ -39,13 +43,14 @@ ALGO_PARAMS = {
         {'type': 'train_test', 'supported': ['linear', 'mlp', 'gbdt', 'cb'], 'problem': 'classification', 'name': "adult", 'data': AdultDataSet(ADULT_TRAIN_PATH, ADULT_TEST_PATH)},
         {'type': 'train_test', 'supported': ['gbdt', 'cb'], 'problem': 'classification', 'name': "internet", 'data': InternetDataSet(INTERNET_TRAIN_PATH, INTERNET_TEST_PATH)},
         {'type': 'train_test', 'supported': ['gbdt', 'cb'], 'problem': 'classification', 'name': "amazon", 'data': AmazonDataSet(AMAZON_TRAIN_PATH, AMAZON_TEST_PATH)},
+        {'type': 'train_test', 'supported': ['linear', 'mlp', 'gbdt', 'cb'], 'problem': 'classification', 'name': "seizures", 'data': SeizuresDataSet(SEIZURES_TRAIN_PATH, SEIZURES_TEST_PATH)},
     ],
 
     'decision_function': [
-        #{'regression': Lasso(),
-        # 'classification': LogisticRegression(
-        #     multi_class='auto', solver='liblinear', penalty='l1', C=1000, n_jobs=6
-        # ), 'type': 'linear'},
+        {'regression': Lasso(),
+         'classification': LogisticRegression(
+             multi_class='auto', solver='liblinear', penalty='l1', C=1000, n_jobs=6
+         ), 'type': 'linear'},
         {'regression': LGBMRegressor(
             boosting_type='gbdt',
             learning_rate=0.05,
@@ -85,15 +90,15 @@ ALGO_PARAMS = {
         #        'random_seed': 0
         #    }}
         #), 'type': 'cb'},
-        #{'regression': MLPRegressor(hidden_layer_sizes=(2, 2), activation='relu'),
-        # 'classification': MLPClassifier(hidden_layer_sizes=(2, 2), activation='relu'),
-        # 'type': 'mlp'
-        #},
+        {'regression': MLPRegressor(hidden_layer_sizes=(2, 2), activation='relu'),
+         'classification': MLPClassifier(hidden_layer_sizes=(2, 2), activation='relu'),
+         'type': 'mlp'
+        },
     ]
 }
 
 HYPERPARAMS = {
     #'bins': [2, 4, 8],
     'bins': [4],
-    'lambda': [0, 0.0005, 0.001, 0.0015, 0.002, 0.003, 0.005, 0.01]
+    'lambda': [0.0, 0.0005, 0.001, 0.0015, 0.002, 0.003, 0.005, 0.01]
 }

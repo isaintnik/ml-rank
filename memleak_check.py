@@ -4,6 +4,8 @@ from sklearn.datasets import make_blobs
 
 from guppy import hpy; h=hpy()
 
+import objgraph
+
 
 def fit_model():
     X, y = make_blobs(n_samples=1000, n_features=10, centers=10)
@@ -24,7 +26,7 @@ def fit_model():
 if __name__ == '__main__':
     before = h.heap()
 
-    for j in range(10):
+    for j in range(100):
         results = Parallel(n_jobs=3)(
             delayed(fit_model)()
             for i in range(j)
@@ -32,12 +34,13 @@ if __name__ == '__main__':
 
         del results
 
-        print((h.heap() - before))
-        print('-'*100)
-        print('-' * 100)
-        print('-' * 100)
+        objgraph.show_most_common_types(25)
+        #print((h.heap() - before))
+        #print('-'*100)
+        #print('-' * 100)
+        #print('-' * 100)
 
-    print(h.heap() - before)
+    #print(h.heap() - before)
 
     #for i in range(10):
     #    X, y = make_blobs(n_samples=1000, n_features=10, centers=10)

@@ -68,7 +68,7 @@ def log_likelihood_target(A, X_train, X_test, y_train, y_test, df, n_random_iter
     decision_function = clone(df)
     ll = 0
 
-    y_test = np.copy(y_test)
+    #y_test = np.copy(y_test)
 
     if A:
         X_train_m = make_features_matrix(X_train, A)

@@ -7,7 +7,8 @@ from mlrank.preprocessing.dichotomizer import DichotomizationIssue
 from mlrank.submodular.optimization.optimizer import SubmodularOptimizer
 from mlrank.utils import split_dataset
 
-from guppy import hpy; h = hpy()
+#from guppy import hpy; h = hpy()
+#import objgraph
 
 
 class ForwardFeatureSelection(SubmodularOptimizer):
@@ -62,8 +63,6 @@ class ForwardFeatureSelection(SubmodularOptimizer):
         feature_names = list(X_plain.keys())
 
         for _ in feature_names:
-            print(h.heap())
-
             feature_scores = list()
 
             for j in feature_names:

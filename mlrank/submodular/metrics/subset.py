@@ -143,7 +143,8 @@ def log_likelihood_cross_features(
         #X_train_m = make_features_matrix(X_train, A)
 
         y = X_t[i]
-        y_test = np.copy(X_t_test[i])  # not optimal but dunno how to do a better way
+        #y_test = np.copy(X_t_test[i])  # not optimal but dunno how to do a better way
+        y_test = X_t_test[i]
 
         if A:
             if np.unique(y).shape[0] > 1:

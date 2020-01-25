@@ -101,22 +101,23 @@ class InternetDataSet(SeparatedDataset):
         dummy_features = dict()
 
         for feature in self.cat_features.difference({self.target_feature}):
-            if feature != 'ACTION':
-                dummy_features[feature] = pd.get_dummies(data_chunk[feature]).values.T
+            dummy_features[feature] = np.atleast_2d(pd.get_dummies(data_chunk[feature]).values).T
 
-        dummy_features.update({'Age': data_chunk['Age']})
+        dummy_features.update({'Age': np.atleast_2d(data_chunk['Age']).reshape(1,-1)})
 
         for feature in self.bin_features.difference({self.target_feature}):
-            dummy_features.update({feature: data_chunk[feature].values})
+            dummy_features.update({feature: np.atleast_2d(data_chunk[feature].values).reshape(1,-1)})
 
         return dummy_features
 
     def cache_features(self):
         self.train_plain = dataframe_to_series_map(get_features_except(self.train, [self.target_feature]))
-        self.train_transformed = self.get_dummies(get_features_except(self.train, [self.target_feature]))
-
         self.test_plain = dataframe_to_series_map(get_features_except(self.test, [self.target_feature]))
-        self.test_transformed = self.get_dummies(get_features_except(self.test, [self.target_feature]))
+
+        whole_df_transformed = self.get_dummies(get_features_except(pd.concat([self.train, self.test]), [self.target_feature]))
+
+        self.train_transformed = {k: v[:,:self.train.shape[0]] for k, v in whole_df_transformed.items()}
+        self.test_transformed = {k: v[:,self.train.shape[0]:] for k, v in whole_df_transformed.items()}
 
     def get_train_target(self) -> pd.Series:
         return self.train[self.target_feature].values

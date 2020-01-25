@@ -41,8 +41,8 @@ ALGO_PARAMS = {
     'dataset': [
         {'type': 'holdout', 'supported': ['linear', 'mlp', 'gbdt', 'cb'], 'problem': 'classification', 'name': "breast_cancer", 'data': BreastDataSet(BREAST_CANCER_PATH)},
         {'type': 'train_test', 'supported': ['linear', 'mlp', 'gbdt', 'cb'], 'problem': 'classification', 'name': "adult", 'data': AdultDataSet(ADULT_TRAIN_PATH, ADULT_TEST_PATH)},
-        {'type': 'train_test', 'supported': ['gbdt', 'cb'], 'problem': 'classification', 'name': "internet", 'data': InternetDataSet(INTERNET_TRAIN_PATH, INTERNET_TEST_PATH)},
-        {'type': 'train_test', 'supported': ['gbdt', 'cb'], 'problem': 'classification', 'name': "amazon", 'data': AmazonDataSet(AMAZON_TRAIN_PATH, AMAZON_TEST_PATH)},
+        {'type': 'train_test', 'supported': ['linear', 'gbdt', 'cb'], 'problem': 'classification', 'name': "internet", 'data': InternetDataSet(INTERNET_TRAIN_PATH, INTERNET_TEST_PATH)},
+        {'type': 'train_test', 'supported': ['linear', 'gbdt', 'cb'], 'problem': 'classification', 'name': "amazon", 'data': AmazonDataSet(AMAZON_TRAIN_PATH, AMAZON_TEST_PATH)},
         {'type': 'train_test', 'supported': ['linear', 'mlp', 'gbdt', 'cb'], 'problem': 'classification', 'name': "seizures", 'data': SeizuresDataSet(SEIZURES_TRAIN_PATH, SEIZURES_TEST_PATH)},
     ],
 
@@ -51,30 +51,30 @@ ALGO_PARAMS = {
          'classification': LogisticRegression(
              multi_class='auto', solver='liblinear', penalty='l1', C=1000, n_jobs=6
          ), 'type': 'linear'},
-        {'regression': LGBMRegressor(
-            boosting_type='gbdt',
-            learning_rate=0.05,
-            num_iterations=1200,
-            max_depth=5,
-            n_estimators=1000,
-            verbose=-1,
-            num_leaves=2 ** 5,
-            silent=True,
-            n_jobs=4
-            ),
-        'classification': LGBMClassifier(
-            boosting_type='gbdt',
-            learning_rate=0.05,
-            num_iterations=1200,
-            max_depth=5,
-            n_estimators=1000,
-            verbose=-1,
-            num_leaves=2 ** 5,
-            silent=True,
-            n_jobs=4
-            ),
-        'type': 'gbdt'
-        },
+        #{'regression': LGBMRegressor(
+        #    boosting_type='gbdt',
+        #    learning_rate=0.05,
+        #    num_iterations=1200,
+        #    max_depth=5,
+        #    n_estimators=1000,
+        #    verbose=-1,
+        #    num_leaves=2 ** 5,
+        #    silent=True,
+        #    n_jobs=4
+        #    ),
+        #'classification': LGBMClassifier(
+        #    boosting_type='gbdt',
+        #    learning_rate=0.05,
+        #    num_iterations=1200,
+        #    max_depth=5,
+        #    n_estimators=1000,
+        #    verbose=-1,
+        #    num_leaves=2 ** 5,
+        #    silent=True,
+        #    n_jobs=4
+        #    ),
+        #'type': 'gbdt'
+        #},
         #{'classification': CatBoostClassifier(
         #    **{**CATBOOST_PARAMS, **{
         #        'loss_function': 'MultiClass',
@@ -90,10 +90,10 @@ ALGO_PARAMS = {
         #        'random_seed': 0
         #    }}
         #), 'type': 'cb'},
-        {'regression': MLPRegressor(hidden_layer_sizes=(2, 2), activation='relu'),
-         'classification': MLPClassifier(hidden_layer_sizes=(2, 2), activation='relu'),
-         'type': 'mlp'
-        },
+        #{'regression': MLPRegressor(hidden_layer_sizes=(2, 2), activation='relu'),
+        # 'classification': MLPClassifier(hidden_layer_sizes=(2, 2), activation='relu'),
+        # 'type': 'mlp'
+        #},
     ]
 }
 

@@ -24,6 +24,7 @@ class Benchmark(object):
 
         X_train_df = make_features_matrix(X_train, subset)
         X_test_df = make_features_matrix(X_test, subset)
+
         model = clone(self.decision_function)
         model.fit(X_train_df, np.squeeze(y_train))
 

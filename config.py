@@ -47,34 +47,34 @@ ALGO_PARAMS = {
     ],
 
     'decision_function': [
-        {'regression': Lasso(),
-         'classification': LogisticRegression(
-             multi_class='auto', solver='liblinear', penalty='l1', C=1000, n_jobs=6
-         ), 'type': 'linear'},
-        #{'regression': LGBMRegressor(
-        #    boosting_type='gbdt',
-        #    learning_rate=0.05,
-        #    num_iterations=1200,
-        #    max_depth=5,
-        #    n_estimators=1000,
-        #    verbose=-1,
-        #    num_leaves=2 ** 5,
-        #    silent=True,
-        #    n_jobs=4
-        #    ),
-        #'classification': LGBMClassifier(
-        #    boosting_type='gbdt',
-        #    learning_rate=0.05,
-        #    num_iterations=1200,
-        #    max_depth=5,
-        #    n_estimators=1000,
-        #    verbose=-1,
-        #    num_leaves=2 ** 5,
-        #    silent=True,
-        #    n_jobs=4
-        #    ),
-        #'type': 'gbdt'
-        #},
+        #{'regression': Lasso(),
+        # 'classification': LogisticRegression(
+        #     multi_class='auto', solver='liblinear', penalty='l1', C=1000
+        # ), 'type': 'linear'},
+        {'regression': LGBMRegressor(
+            boosting_type='gbdt',
+            learning_rate=0.05,
+            num_iterations=1200,
+            max_depth=5,
+            n_estimators=1000,
+            verbose=-1,
+            num_leaves=2 ** 5,
+            silent=True,
+            n_jobs=4
+            ),
+        'classification': LGBMClassifier(
+            boosting_type='gbdt',
+            learning_rate=0.05,
+            num_iterations=1200,
+            max_depth=5,
+            n_estimators=1000,
+            verbose=-1,
+            num_leaves=2 ** 5,
+            silent=True,
+            n_jobs=4
+            ),
+        'type': 'gbdt'
+        },
         #{'classification': CatBoostClassifier(
         #    **{**CATBOOST_PARAMS, **{
         #        'loss_function': 'MultiClass',
@@ -100,5 +100,5 @@ ALGO_PARAMS = {
 HYPERPARAMS = {
     #'bins': [2, 4, 8],
     'bins': [4],
-    'lambda': [0.0, 0.0005, 0.001, 0.0015, 0.002, 0.003, 0.005, 0.01]
+    'lambda': [0.0001, 0.001, 0.01, 0.1, 10, 50, 100]
 }

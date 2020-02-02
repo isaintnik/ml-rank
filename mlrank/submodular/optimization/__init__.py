@@ -1,3 +1,4 @@
 #from usm import MultilinearUSMExtended, MultilinearUSMClassic
 from mlrank.submodular.optimization.ffs import ForwardFeatureSelectionExtended
 from mlrank.submodular.optimization.multilinear import MultilinearUSMExtended
+from mlrank.submodular.optimization.ffs_composite import ForwardFeatureSelectionComposite

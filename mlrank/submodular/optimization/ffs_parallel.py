@@ -59,7 +59,8 @@ async def eval_new_feature(
                 decision_function=decision_function
             ))
 
-    return {k: np.mean([l[k] for l in likelihoods]) for k in likelihoods[0].keys()}
+    return {k: float(np.mean([l[k] for l in likelihoods]))
+            for k in likelihoods[0].keys()}
 
 
 class ForwardFeatureSelectionCompositeClient(ForwardFeatureSelection):
@@ -76,7 +77,6 @@ class ForwardFeatureSelectionCompositeClient(ForwardFeatureSelection):
                  n_bins: int = 4,
                  n_features: int = -1,
                  n_cv_ffs: int = 1,
-                 n_jobs=-1,
                  ):
         """
         Perform greedy algorithm of feature selection ~ O(n_features ** 2)
@@ -92,7 +92,7 @@ class ForwardFeatureSelectionCompositeClient(ForwardFeatureSelection):
             n_bins,
             n_features,
             n_cv_ffs,
-            n_jobs
+            n_jobs = -1
         )
 
         self.server_clc = server_clc

@@ -81,34 +81,28 @@ class ForwardFeatureSelectionComposite(ForwardFeatureSelection):
         X_f, X_t, y = self.get_dichotomized(X_plain, X_transformed, y, continuous_feature_list)
 
         subset = list()
-        if self.n_features == -1:
-            self.n_features = len(X_plain.keys())
         self.logs = list()
-
-        prev_top_score = -np.inf
 
         feature_names = list(X_plain.keys())
         values_prev = None
 
-        for _ in feature_names:
+        for i in range(len(feature_names)):
             feature_scores = list()
 
             values_cur_iteration = list()
             for j in feature_names:
                 if j in subset:
-                    feature_scores.append(-np.inf)
                     values_cur_iteration.append(None)
+                    feature_scores.append(-np.inf)
                 else:
-                    feature_scores.append(self.evaluate_feature_score(values_prev, values_cur_iteration[-1]))
                     values_cur_iteration.append(self.evaluate_new_feature(subset, j, X_f, X_t, y))
+                    feature_scores.append(self.evaluate_feature_score(values_prev, values_cur_iteration[-1]))
 
             top_feature = int(np.argmax(feature_scores))  # np.atleast_1d(np.squeeze(np.argmax(feature_scores)))[0]
 
-            if np.max(feature_scores) > prev_top_score or self.n_features < len(X_plain.keys()):
+            if np.max(feature_scores) > 0 or i == 0:
                 subset.append(feature_names[top_feature])
                 values_prev = values_cur_iteration[top_feature]
-
-                prev_top_score = np.max(feature_scores)
 
                 self.logs.append({
                     'subset': np.copy(subset).tolist(),

@@ -1,12 +1,15 @@
 import os
 import sys
 import warnings
+import time
 from functools import partial
 
-from mlrank.datasets.internet import InternetDataSet
 from mlrank.preprocessing.dichotomizer import DichotomizationImpossible
-from mlrank.submodular.metrics import log_likelihood_regularized_score_val
-from mlrank.submodular.optimization import ForwardFeatureSelectionExtended, MultilinearUSMExtended
+from mlrank.submodular.metrics import (
+    get_log_likelihood_regularized_score_balanced_components,
+    log_likelihood_regularized_score_multiplicative_balanced
+)
+from mlrank.submodular.optimization import ForwardFeatureSelectionComposite
 
 if not sys.warnoptions:
     warnings.simplefilter("ignore")
@@ -39,25 +42,20 @@ def benchmark_holdout(dataset, decision_function, lambda_param, bins):
         raise DichotomizationImpossible(bins, int(dataset['data'].get_target().size * 0.8))
 
     dfunc = decision_function['classification']
-    score_function = partial(log_likelihood_regularized_score_val, _lambda=lambda_param)    #score_function = partial(decision_function, _lambda=lambda_param)
+    components_function = log_likelihood_regularized_score_multiplicative_balanced
+    score_function = partial(log_likelihood_regularized_score_multiplicative_balanced, _lambda=lambda_param)
     #score_function = bic_regularized
 
     bench = HoldoutBenchmark(
-        ForwardFeatureSelectionExtended(
+        ForwardFeatureSelectionComposite(
             decision_function=dfunc,
+            score_function_components=components_function,
             score_function=score_function,
             n_bins=bins,
             train_share=0.9,
             n_cv_ffs=8,
             n_jobs=1
         ),
-        #MultilinearUSMExtended(
-        #    decision_function=dfunc,
-        #    score_function=score_function,
-        #    n_bins=bins,
-        #    train_share=0.8,
-        #    n_cv=8,
-        #),
         decision_function=dfunc,
         requires_linearisation=decision_function['type'] != 'gbdt',
         n_holdouts=80,
@@ -81,23 +79,28 @@ def benchmark_train_test(dataset, decision_function, lambda_param, bins, df_jobs
 
     dfunc = decision_function['classification']
     dfunc.n_jobs = df_jobs
-    score_function = partial(log_likelihood_regularized_score_val,
-                             _lambda=lambda_param)
+    components_function = get_log_likelihood_regularized_score_balanced_components
+    score_function = partial(log_likelihood_regularized_score_multiplicative_balanced, _lambda=lambda_param)
 
     bench = TrainTestBenchmark(
-        optimizer=ForwardFeatureSelectionExtended(
+        optimizer=ForwardFeatureSelectionComposite(
             decision_function=dfunc,
+            score_function_components=components_function,
             score_function=score_function,
             n_bins=bins,
             train_share=0.9,
             n_cv_ffs=8,
-            n_jobs=8 if decision_function['type'] in ["linear", "mlp"] else 3
+            n_jobs=8
         ),
         decision_function=dfunc,
         requires_linearisation=decision_function['type'] != 'gbdt'
     )
 
-    return bench.benchmark(dataset['data'])
+    start_time = time.time()
+    result = bench.benchmark(dataset['data'])
+    print("--- %s seconds ---" % (time.time() - start_time))
+
+    return result
 
 #ARRHYTHMIA_PATH = './datasets/arrhythmia.data'
 #FOREST_FIRE_PATH = './datasets/forestfires.csv'
@@ -113,7 +116,7 @@ if __name__ == '__main__':
 
     results = {}
 
-    for dataset, decision_function in product([ALGO_PARAMS['dataset'][4]], ALGO_PARAMS['decision_function']):
+    for dataset, decision_function in product([ALGO_PARAMS['dataset'][1]], ALGO_PARAMS['decision_function']):
         dfunc = decision_function[dataset['problem']]
         key = "{}, {}".format(dataset['name'], dfunc.__class__.__name__)
         results[key] = list()
@@ -144,4 +147,4 @@ if __name__ == '__main__':
                 'result': predictions
             })
 
-            joblib.dump(results, f"./data/{dataset['name']}_1.bin")
+            joblib.dump(results, f"./data/{dataset['name']}_composite_gbdt_1.bin")

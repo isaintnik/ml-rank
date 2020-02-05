@@ -31,7 +31,7 @@ class ForwardFeatureSelection(SubmodularOptimizer):
         """
         super().__init__()
 
-        self.decision_function = clone(decision_function)
+        self.decision_function = decision_function
         self.n_cv_ffs = n_cv_ffs
         self.n_bins = n_bins
         self.train_share = train_share

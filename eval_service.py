@@ -4,24 +4,27 @@ import random
 import joblib
 
 import asyncio
-import aiohttp
 from aiohttp import web
 from aiohttp import BodyPartReader
 
 from config import ALGO_PARAMS
+
 from mlrank.submodular.metrics import get_log_likelihood_regularized_score_balanced_components
 from mlrank.submodular.optimization.ffs_parallel import eval_new_feature
 
 TEMPORARY_FILE_FOLDER = './temp/'
-
-feature_eval_lock = asyncio.Lock()  # prevent spawning dozens of processes
+lock = asyncio.Lock()
+file_lock = asyncio.Lock()
 
 
 def estimate_n_jobs(n_cv_ffs: int, decision_function):
     n_cpu = joblib.cpu_count()
-    n_jobs = decision_function.n_jobs
+    if hasattr(decision_function, 'n_jobs') and decision_function.n_jobs is not None:
+        n_jobs = decision_function.n_jobs
+    else:
+        n_jobs = 1
 
-    return min(n_cpu / n_jobs, n_cv_ffs)
+    return int(min(n_cpu / n_jobs, n_cv_ffs))
 
 
 async def download_huge_file(temp_path: str, field: BodyPartReader) -> dict:
@@ -34,6 +37,7 @@ async def download_huge_file(temp_path: str, field: BodyPartReader) -> dict:
 
     data = joblib.load(temp_path)
     os.remove(temp_path)
+
     return data
 
 
@@ -65,26 +69,11 @@ async def collect_params(request: web.BaseRequest) -> dict:
 
         f: BodyPartReader = await reader.next()
 
+    for k, v in params.items():
+        if v is None:
+            raise Exception(f"{k} must be set")
+
     return params
-
-
-async def send_to_storage(storage_host: str, storage_port: str, key:str, feature:str, results: dict):
-    async with aiohttp.ClientSession() as session:
-        data = {
-            'result': json.dumps(results),
-            'feature': feature,
-            'key': key
-        }
-
-        response = await session.post(
-            f'http://{storage_host}:{storage_port}/store',
-            data=data
-        )
-
-        if response.status != web.HTTPCreated.status_code:
-            raise Exception('results were not sent')
-
-    return True
 
 
 async def evaluation_worker(params: dict):
@@ -94,36 +83,34 @@ async def evaluation_worker(params: dict):
             decision_function = df['classification']
 
     n_jobs = estimate_n_jobs(int(params['n_cv_ffs']), decision_function)
+    subset = params['subset'].split(',')
+    if subset[0] == '':
+        subset = []
 
-    async with feature_eval_lock:
-        eval_result = await eval_new_feature(
-            subset = params['subset'].split(','),
-            new_feature = params['feature'],
-            X_f = params['sample']['X_f'],
-            X_t = params['sample']['X_t'],
-            y = params['sample']['y'],
-            n_cv_ffs = int(params['n_cv_ffs']),
-            n_jobs = n_jobs,
-            seeds = list(map(int, params['seeds'].split(','))),
-            train_share = float(params['ffs_train_share']),
-            decision_function = decision_function,
-            score_function_components = get_log_likelihood_regularized_score_balanced_components,
-        )
+    async with lock:
+        await asyncio.sleep(1)
+        eval_result = {'ll': 12, 'llcf': 50}
+        #eval_result = eval_new_feature(
+        #    subset = subset,
+        #    new_feature = params['feature'],
+        #    X_f = params['sample']['X_f'],
+        #    X_t = params['sample']['X_t'],
+        #    y = params['sample']['y'],
+        #    n_cv_ffs = int(params['n_cv_ffs']),
+        #    n_jobs = n_jobs,
+        #    seeds = list(map(int, params['seeds'].split(','))),
+        #    train_share = float(params['ffs_train_share']),
+        #    decision_function = decision_function,
+        #    score_function_components = get_log_likelihood_regularized_score_balanced_components,
+        #)
 
-        return await send_to_storage(
-            params['storage_host'],
-            params['storage_port'],
-            params['key'],
-            params['feature'],
-            eval_result
-        )
+    return eval_result
 
 
 async def handle_feature(request: web.Request):
     params = await collect_params(request)
-    await evaluation_worker(params)
-
-    raise web.HTTPCreated
+    result = await evaluation_worker(params)
+    return web.Response(text=json.dumps({'result': result}))
 
 
 app = web.Application()

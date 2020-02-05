@@ -1,4 +1,4 @@
-from catboost import CatBoost, CatBoostClassifier, CatBoostRegressor
+#from catboost import CatBoost, CatBoostClassifier, CatBoostRegressor
 from lightgbm import LGBMRegressor, LGBMClassifier
 from sklearn.linear_model import Lasso, LogisticRegression
 from sklearn.neural_network import MLPRegressor, MLPClassifier
@@ -47,10 +47,10 @@ ALGO_PARAMS = {
     ],
 
     'decision_function': [
-        #{'regression': Lasso(),
-        # 'classification': LogisticRegression(
-        #     multi_class='auto', solver='liblinear', penalty='l1', C=1000
-        # ), 'type': 'linear'},
+        {'regression': Lasso(),
+         'classification': LogisticRegression(
+             multi_class='auto', solver='liblinear', penalty='l1', C=1000
+         ), 'type': 'linear'},
         {'regression': LGBMRegressor(
             boosting_type='gbdt',
             learning_rate=0.05,
@@ -100,5 +100,5 @@ ALGO_PARAMS = {
 HYPERPARAMS = {
     #'bins': [2, 4, 8],
     'bins': [4],
-    'lambda': [0, 0.0001, 0.0005, 0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 1]
+    'lambda': [0.001]
 }

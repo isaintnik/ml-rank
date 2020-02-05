@@ -98,18 +98,33 @@ class ForwardFeatureSelectionComposite(ForwardFeatureSelection):
                     values_cur_iteration.append(self.evaluate_new_feature(subset, j, X_f, X_t, y))
                     feature_scores.append(self.evaluate_feature_score(values_prev, values_cur_iteration[-1]))
 
+            print('#'*100)
+            print('#' * 100)
+            print(feature_scores)
+            print(values_cur_iteration)
+
             top_feature = int(np.argmax(feature_scores))  # np.atleast_1d(np.squeeze(np.argmax(feature_scores)))[0]
 
-            if np.max(feature_scores) > 0 or i == 0:
-                subset.append(feature_names[top_feature])
-                values_prev = values_cur_iteration[top_feature]
+            subset.append(feature_names[top_feature])
+            values_prev = values_cur_iteration[top_feature]
 
-                self.logs.append({
-                    'subset': np.copy(subset).tolist(),
-                    'score': np.max(feature_scores)
-                })
-            else:
-                break
+            self.logs.append({
+                'subset': np.copy(subset).tolist(),
+                'score': np.max(feature_scores)
+            })
+
+            from pprint import pprint
+            pprint(self.logs)
+            #if np.max(feature_scores) > 0 or i == 0:
+            #    subset.append(feature_names[top_feature])
+            #    values_prev = values_cur_iteration[top_feature]
+            #
+            #    self.logs.append({
+            #        'subset': np.copy(subset).tolist(),
+            #        'score': np.max(feature_scores)
+            #    })
+            #else:
+            #    break
 
         return subset
 

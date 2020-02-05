@@ -1,3 +1,5 @@
+import concurrent.futures
+
 import joblib
 import os
 import json
@@ -28,6 +30,7 @@ async def eval_new_feature(
     A = subset + [new_feature]
     likelihoods = list()
     if n_jobs > 1:
+        print(n_jobs)
         likelihoods = Parallel(n_jobs=n_jobs)(
             delayed(score_function_components)(
                 A=A,
@@ -108,47 +111,55 @@ class ForwardFeatureSelectionCompositeClient(ForwardFeatureSelection):
     def evaluate_new_feature(self, prev_subset, new_feature, X_f, X_t, y):
         pass
 
-    def send_to_evaluator_service(self, sample_folder: str, rndkey: int, prev_subset: list):
-        free_features = set(self.feature_names).intersection(prev_subset)
+    @staticmethod
+    def run_async_worker(host, port, values, sample_path):
+        with open(sample_path, 'rb') as f:
+            r = requests.post(f'http://{host}:{port}/', data=values, files={'sample': f})
 
-        for i in free_features:
-            values = {
-                'key': rndkey,
-                'feature': i,
-                'subset': ','.join(prev_subset),
-                'decision_function': self.decision_function,
-                'n_cv_ffs': self.n_cv_ffs,
-                'ffs_train_share': self.train_share,
-                'seeds': ','.join(map(str, self.seeds))
-            }
+            if r.status_code == 200:
+                return json.loads(r.text)
+        return None
 
-            with open(sample_folder, 'rb') as f:
-                response = requests.post(
-                    f'http://{self.server_clc}:{self.port_clc}/',
-                    data=values,
-                    files={'sample': f}
-                )
+    def evaluate_from_external_service(self, sample_path: str, rndkey: int, prev_subset: list):
+        free_features = set(self.feature_names).difference(prev_subset)
 
-                if response.status_code != 201:
-                    raise Exception(f'Invalid status code: {response.status_code}')
+        result = dict()
+        with concurrent.futures.ThreadPoolExecutor(max_workers=len(free_features)) as executor:
+            future_to_feature = dict()
+            for i in free_features:
+                values = {
+                    'storage_host': self.server_res,
+                    'storage_port': self.port_res,
+                    'key': rndkey,
+                    'feature': i,
+                    'subset': ','.join(prev_subset),
+                    'decision_function': self.decision_function,
+                    'n_cv_ffs': self.n_cv_ffs,
+                    'ffs_train_share': self.train_share,
+                    'seeds': ','.join(map(str, self.seeds))
+                }
 
-    def query_evaluation_results(self, prev_subset: list, rndkey: int) -> dict:
-        free_features = set(self.feature_names).intersection(prev_subset)
+                time.sleep(0.05)
 
-        vals = None
-        while True:
-            result = requests.get(f'http://{self.server_res}:{self.port_res}/', params={
-                'key': rndkey
-            })
+                future_to_feature[
+                    executor.submit(
+                        ForwardFeatureSelectionCompositeClient.run_async_worker,
+                        self.server_clc, self.port_clc, values, sample_path
+                    )
+                ] = i
 
-            vals = json.loads(result.text)
-            if free_features.difference(list(vals.keys())) != {}:
-                continue
+            for future in concurrent.futures.as_completed(future_to_feature):
+                feature = future_to_feature[future]
+                try:
+                    result[feature] = future.result()
+                except Exception as ex:
+                    print(str(ex))
+                    result[feature] = None
 
-            time.sleep(5)
-            break
+        if any(map(lambda x: x is None, result.values())):
+            raise Exception(f'some features failed to process.')
 
-        return vals
+        return result
 
     def evaluate_feature_score(self, ll_vals_prev, ll_vals_cur) -> float:
         return self.score_function(ll_vals_prev, ll_vals_cur)
@@ -173,8 +184,7 @@ class ForwardFeatureSelectionCompositeClient(ForwardFeatureSelection):
         values_prev = None
         for _ in self.feature_names:
             eval_key = int(np.random.randint(0, 10000000))
-            self.send_to_evaluator_service(sample_folder='./tmp/sample.bin', rndkey=eval_key, prev_subset=subset)
-            result = self.query_evaluation_results(rndkey=eval_key, prev_subset=subset)
+            result = self.evaluate_from_external_service(sample_path='./tmp/sample.bin', rndkey=eval_key, prev_subset=subset)
 
             feature_scores = list()
             ordered_feature_names = list(result.keys())

@@ -53,9 +53,6 @@ def benchmark_holdout(
             server_clc=service_eval_host,
             port_clc=service_eval_port,
 
-            server_res=service_store_host,
-            port_res=service_store_port,
-
             decision_function=decision_function['type'],
             score_function=score_function,
             n_bins=bins,
@@ -74,8 +71,6 @@ def benchmark_holdout(
 def benchmark_train_test(
         service_eval_host: str,
         service_eval_port: str,
-        service_store_host: str,
-        service_store_port: str,
 
         dataset,
         decision_function,
@@ -100,9 +95,6 @@ def benchmark_train_test(
             server_clc=service_eval_host,
             port_clc=service_eval_port,
 
-            server_res=service_store_host,
-            port_res=service_store_port,
-
             decision_function=decision_function['type'],
             score_function=score_function,
             n_bins=bins,
@@ -120,11 +112,8 @@ def benchmark_train_test(
     return result
 
 
-EVAL_SERVICE_HOST = '127.0.0.1'
+EVAL_SERVICE_HOST = '192.168.64.3'
 EVAL_SERVICE_PORT = '5001'
-
-STORE_SERVICE_HOST = '127.0.0.1'
-STORE_SERVICE_PORT = '5002'
 
 if __name__ == '__main__':
     np.random.seed(42)
@@ -154,8 +143,6 @@ if __name__ == '__main__':
                     predictions = benchmark_train_test(
                         EVAL_SERVICE_HOST,
                         EVAL_SERVICE_PORT,
-                        STORE_SERVICE_HOST,
-                        STORE_SERVICE_PORT,
                         dataset,
                         decision_function,
                         lambda_param,

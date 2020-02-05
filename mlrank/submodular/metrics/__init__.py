@@ -29,9 +29,10 @@ def get_log_likelihood_regularized_score_balanced_components(A, X_f, X_f_test, X
     }
 
 
+# argmin problem
 def log_likelihood_regularized_score_multiplicative_balanced(components_prev, components_cur, _lambda: float) -> float:
     if components_prev is None:
-        return components_cur['ll']# - _lambda * components_cur['llcf']
+        return components_cur['ll'] - _lambda * components_cur['llcf'] # convert to argmin problem
 
     #return (components_cur['ll'] - components_prev['ll']) - _lambda * (components_cur['llcf'] - components_prev['llcf'])
     return (components_cur['ll'] - components_prev['ll']) * (
@@ -39,18 +40,22 @@ def log_likelihood_regularized_score_multiplicative_balanced(components_prev, co
     )
 
 
+# argmax problem
 def likelihood_regularized_score_val(A, X_f, X_f_test, X_t, X_t_test, y, y_test, decision_function, _lambda) -> np.float128:
     val = log_likelihood_regularized_score_val(A, X_f, X_f_test, X_t, X_t_test, y, y_test, decision_function, _lambda)
     return np.exp(np.array(val, dtype=np.float128))
 
 
+# argmax problem
 def bic_criterion(A, X_f, X_f_test, X_t, X_t_test, y, y_test, decision_function):
     return log_likelihood_bic(A, X_f, X_f_test, y, y_test, decision_function)
 
 
+# argmax problem
 def aic_criterion(A, X_f, X_f_test, X_t, X_t_test, y, y_test, decision_function):
     return log_likelihood_aic(A, X_f, X_f_test, y, y_test, decision_function)
 
 
+# argmax problem
 def aicc_criterion(A, X_f, X_f_test, X_t, X_t_test, y, y_test, decision_function):
     return log_likelihood_aicc(A, X_f, X_f_test, y, y_test, decision_function)

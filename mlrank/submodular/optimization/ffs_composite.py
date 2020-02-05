@@ -84,7 +84,9 @@ class ForwardFeatureSelectionComposite(ForwardFeatureSelection):
         self.logs = list()
 
         feature_names = list(X_plain.keys())
+        prev_top_score = -np.inf
         values_prev = None
+        iter_count = 0  # for composite functional
 
         for i in range(len(feature_names)):
             feature_scores = list()
@@ -103,28 +105,31 @@ class ForwardFeatureSelectionComposite(ForwardFeatureSelection):
             print(feature_scores)
             print(values_cur_iteration)
 
+            # globally - we maximize
             top_feature = int(np.argmax(feature_scores))  # np.atleast_1d(np.squeeze(np.argmax(feature_scores)))[0]
 
-            subset.append(feature_names[top_feature])
-            values_prev = values_cur_iteration[top_feature]
+            # globally - we minimize
+            if (iter_count < 2) or ((iter_count >= 2) and np.min(feature_scores) < prev_top_score):
+                subset.append(feature_names[top_feature])
 
-            self.logs.append({
-                'subset': np.copy(subset).tolist(),
-                'score': np.max(feature_scores)
-            })
+                prev_top_score = feature_scores[top_feature]
+                values_prev = values_cur_iteration[top_feature]
 
-            from pprint import pprint
-            pprint(self.logs)
-            #if np.max(feature_scores) > 0 or i == 0:
-            #    subset.append(feature_names[top_feature])
-            #    values_prev = values_cur_iteration[top_feature]
-            #
-            #    self.logs.append({
-            #        'subset': np.copy(subset).tolist(),
-            #        'score': np.max(feature_scores)
-            #    })
-            #else:
-            #    break
+                self.logs.append({
+                    'subset': np.copy(subset).tolist(),
+                    'score': np.max(feature_scores)
+                })
+
+                from pprint import pprint
+                pprint(self.logs[-1])
+            else:
+                print('ASSSDASDASDASD')
+                print('ASSSDASDASDASD')
+                print('ASSSDASDASDASD')
+                print('ASSSDASDASDASD')
+                break
+
+            iter_count += 1
 
         return subset
 

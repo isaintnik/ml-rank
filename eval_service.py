@@ -88,21 +88,21 @@ async def evaluation_worker(params: dict):
         subset = []
 
     async with lock:
-        await asyncio.sleep(1)
-        eval_result = {'ll': 12, 'llcf': 50}
-        #eval_result = eval_new_feature(
-        #    subset = subset,
-        #    new_feature = params['feature'],
-        #    X_f = params['sample']['X_f'],
-        #    X_t = params['sample']['X_t'],
-        #    y = params['sample']['y'],
-        #    n_cv_ffs = int(params['n_cv_ffs']),
-        #    n_jobs = n_jobs,
-        #    seeds = list(map(int, params['seeds'].split(','))),
-        #    train_share = float(params['ffs_train_share']),
-        #    decision_function = decision_function,
-        #    score_function_components = get_log_likelihood_regularized_score_balanced_components,
-        #)
+        #await asyncio.sleep(5)
+        #eval_result = {'ll':123, 'llcf':123}
+        eval_result = await eval_new_feature(
+            subset = subset,
+            new_feature = params['feature'],
+            X_f = params['sample']['X_f'],
+            X_t = params['sample']['X_t'],
+            y = params['sample']['y'],
+            n_cv_ffs = int(params['n_cv_ffs']),
+            n_jobs = n_jobs,
+            seeds = list(map(int, params['seeds'].split(','))),
+            train_share = float(params['ffs_train_share']),
+            decision_function = decision_function,
+            score_function_components = get_log_likelihood_regularized_score_balanced_components,
+        )
 
     return eval_result
 

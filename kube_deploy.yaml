@@ -1,0 +1,22 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: evalservice
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      run: evalservice
+  template:
+    metadata:
+      labels:
+        run: evalservice
+    spec:
+      containers:
+      - name: evalservice
+        image: evalservice:latest
+        imagePullPolicy: Never
+        ports:
+        - containerPort: 5001
+#      imagePullSecrets:
+#      - name: regcred

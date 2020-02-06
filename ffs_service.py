@@ -112,7 +112,7 @@ def benchmark_train_test(
     return result
 
 
-EVAL_SERVICE_HOST = '192.168.64.3'
+EVAL_SERVICE_HOST = '35.193.250.1'
 EVAL_SERVICE_PORT = '5001'
 
 if __name__ == '__main__':

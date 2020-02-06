@@ -32,7 +32,7 @@ def get_log_likelihood_regularized_score_balanced_components(A, X_f, X_f_test, X
 # argmin problem
 def log_likelihood_regularized_score_multiplicative_balanced(components_prev, components_cur, _lambda: float) -> float:
     if components_prev is None:
-        return components_cur['ll'] - _lambda * components_cur['llcf'] # convert to argmin problem
+        return components_cur['ll']# - _lambda * components_cur['llcf']
 
     #return (components_cur['ll'] - components_prev['ll']) - _lambda * (components_cur['llcf'] - components_prev['llcf'])
     return (components_cur['ll'] - components_prev['ll']) * (

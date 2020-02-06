@@ -100,34 +100,36 @@ class ForwardFeatureSelectionComposite(ForwardFeatureSelection):
                     values_cur_iteration.append(self.evaluate_new_feature(subset, j, X_f, X_t, y))
                     feature_scores.append(self.evaluate_feature_score(values_prev, values_cur_iteration[-1]))
 
-            print('#'*100)
-            print('#' * 100)
-            print(feature_scores)
-            print(values_cur_iteration)
+            #print('#'*100)
+            #print('#' * 100)
+            #print(feature_scores)
+            #print(values_cur_iteration)
 
-            # globally - we maximize
+            # locally - we maximize
             top_feature = int(np.argmax(feature_scores))  # np.atleast_1d(np.squeeze(np.argmax(feature_scores)))[0]
 
+            subset.append(feature_names[top_feature])
+            values_prev = values_cur_iteration[top_feature]
+
+            self.logs.append({
+                'subset': np.copy(subset).tolist(),
+                'score': np.max(feature_scores)
+            })
+            from pprint import pprint
+            pprint(self.logs[-1])
             # globally - we minimize
-            if (iter_count < 2) or ((iter_count >= 2) and np.min(feature_scores) < prev_top_score):
-                subset.append(feature_names[top_feature])
-
-                prev_top_score = feature_scores[top_feature]
-                values_prev = values_cur_iteration[top_feature]
-
-                self.logs.append({
-                    'subset': np.copy(subset).tolist(),
-                    'score': np.max(feature_scores)
-                })
-
-                from pprint import pprint
-                pprint(self.logs[-1])
-            else:
-                print('ASSSDASDASDASD')
-                print('ASSSDASDASDASD')
-                print('ASSSDASDASDASD')
-                print('ASSSDASDASDASD')
-                break
+            #if (iter_count < 2) or ((iter_count >= 2) and feature_scores[top_feature] > 0):
+            #    subset.append(feature_names[top_feature])
+            #
+            #    prev_top_score = feature_scores[top_feature]
+            #    values_prev = values_cur_iteration[top_feature]
+            #
+            #    self.logs.append({
+            #        'subset': np.copy(subset).tolist(),
+            #        'score': np.max(feature_scores)
+            #    })
+            #else:
+            #    break
 
             iter_count += 1
 

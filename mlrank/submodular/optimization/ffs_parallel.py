@@ -29,8 +29,8 @@ async def eval_new_feature(
 ):
     A = subset + [new_feature]
     likelihoods = list()
+
     if n_jobs > 1:
-        print(n_jobs)
         likelihoods = Parallel(n_jobs=n_jobs)(
             delayed(score_function_components)(
                 A=A,
@@ -70,10 +70,6 @@ class ForwardFeatureSelectionCompositeClient(ForwardFeatureSelection):
     def __init__(self,
                  server_clc: str,
                  port_clc: str,
-
-                 server_res: str,
-                 port_res: str,
-
                  decision_function: str,
                  score_function,
                  train_share: float = 1.0,
@@ -101,9 +97,6 @@ class ForwardFeatureSelectionCompositeClient(ForwardFeatureSelection):
         self.server_clc = server_clc
         self.port_clc = port_clc
 
-        self.server_res = server_res
-        self.port_res = port_res
-
         self.feature_names = None
 
         self.score_function = score_function
@@ -128,8 +121,8 @@ class ForwardFeatureSelectionCompositeClient(ForwardFeatureSelection):
             future_to_feature = dict()
             for i in free_features:
                 values = {
-                    'storage_host': self.server_res,
-                    'storage_port': self.port_res,
+                    'storage_host': '',
+                    'storage_port': '',
                     'key': rndkey,
                     'feature': i,
                     'subset': ','.join(prev_subset),
@@ -151,7 +144,7 @@ class ForwardFeatureSelectionCompositeClient(ForwardFeatureSelection):
             for future in concurrent.futures.as_completed(future_to_feature):
                 feature = future_to_feature[future]
                 try:
-                    result[feature] = future.result()
+                    result[feature] = future.result()['result']
                 except Exception as ex:
                     print(str(ex))
                     result[feature] = None
@@ -186,6 +179,7 @@ class ForwardFeatureSelectionCompositeClient(ForwardFeatureSelection):
             eval_key = int(np.random.randint(0, 10000000))
             result = self.evaluate_from_external_service(sample_path='./tmp/sample.bin', rndkey=eval_key, prev_subset=subset)
 
+            print(result)
             feature_scores = list()
             ordered_feature_names = list(result.keys())
             for j in ordered_feature_names:
@@ -197,15 +191,7 @@ class ForwardFeatureSelectionCompositeClient(ForwardFeatureSelection):
                 subset.append(ordered_feature_names[top_feature])
                 values_prev = result[ordered_feature_names[top_feature]]
                 prev_top_score = np.max(feature_scores)
-
-                self.logs.append({
-                    'subset': np.copy(subset).tolist(),
-                    'score': np.max(feature_scores)
-                })
             else:
                 break
 
         return subset
-
-    def get_logs(self):
-        return self.logs
